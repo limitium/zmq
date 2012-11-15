@@ -90,7 +90,7 @@ class Ventilator
             foreach ($this->workersFree as $worker) {
                 $this->workerSend($worker, W_HEARTBEAT);
             }
-            $this->heartbeatAt = microtime(true) + (HEARTBEAT_INTERVAL / 1000);
+            $this->heartbeatAt = microtime(true) + ($this->heartbeatDelay / 1000);
         }
     }
 
