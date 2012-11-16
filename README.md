@@ -2,7 +2,8 @@
 ===
 
 ``server.php``
-  <?php
+
+    <?php
     require_once "Ventilator.php";
 
     $server = new Ventilator(true);
@@ -19,6 +20,7 @@
     $server->listen();
 
 ``worker.php``
+
     <?php
     require_once "Worker.php";
 
