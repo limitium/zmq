@@ -1,6 +1,6 @@
 <?php
 require_once "commands.php";
-require_once "zmsg.php";
+require_once "Zmsg.php";
 
 class Ventilator
 {

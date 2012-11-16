@@ -1,6 +1,6 @@
 <?php
 require_once "commands.php";
-require_once "zmsg.php";
+require_once "Zmsg.php";
 
 class Worker
 {
@@ -71,6 +71,7 @@ class Worker
         $read = $write = array();
         while (true) {
             $events = $this->poll->poll($read, $write, $this->heartbeatDelay);
+            $sendHeartBeat = true;
             if ($events) {
                 $zmsg = new Zmsg($this->socket);
                 $zmsg->recv();
@@ -91,6 +92,8 @@ class Worker
                     //@todo: get address
                     $result = call_user_func($this->executer, $zmsg->pop());
                     $this->send($result);
+                    //resp = HB
+                    $sendHeartBeat = false;
                 } elseif ($command == W_DISCONNECT) {
                     $this->connect();
                 } else {
@@ -105,14 +108,16 @@ class Worker
                 $this->connect();
             }
 
-            $this->sendHeartbeat();
+            $this->sendHeartbeat($sendHeartBeat);
         }
     }
 
-    private function sendHeartbeat()
+    private function sendHeartbeat($sendHeartBeat)
     {
         if (microtime(true) > $this->heartbeatAt) {
-            $this->sendCommand(W_HEARTBEAT);
+            if ($sendHeartBeat) {
+                $this->sendCommand(W_HEARTBEAT);
+            }
             $this->heartbeatAt = microtime(true) + ($this->heartbeatDelay / 1000);
         }
     }
