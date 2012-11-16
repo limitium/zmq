@@ -14,7 +14,7 @@ class Worker
     private $heartbeatDelay;
     private $reconnectDelay;
     private $heartbeatTriesLeft;
-    private $heartbeatMaxFails = 3;
+    private $heartbeatMaxFails = 4;
     private $executer;
 
     public function __construct($broker, $verbose = false, $heartbeatDelay = 2500, $reconnectDelay = 5000)

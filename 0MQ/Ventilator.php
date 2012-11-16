@@ -12,7 +12,7 @@ class Ventilator
 // Heartbeat management
     private $heartbeatAt; // When to send HEARTBEAT
     private $heartbeatDelay; // Heartbeat delay, msecs
-    private $heartbeatMaxFails = 3;
+    private $heartbeatMaxFails = 4;
 
     //workers
     private $workers;
@@ -76,7 +76,7 @@ class Ventilator
                 }
             }
 
-            $this->purgeWorkers();
+            $this->generateTasks();
             $this->sendHeartbeats();
         }
     }
@@ -209,9 +209,13 @@ class Ventilator
 
     private function generateTasks()
     {
+        $this->purgeWorkers();
         foreach ($this->workersFree as $k => $worker) {
-            $this->workerSend($worker, W_REQUEST, call_user_func($this->generator));
-            unset($this->workersFree[$k]);
+            $task = call_user_func($this->generator);
+            if ($task) {
+                $this->workerSend($worker, W_REQUEST, $task);
+                unset($this->workersFree[$k]);
+            }
         }
     }
 }
