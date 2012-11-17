@@ -118,8 +118,8 @@ class Ventilator
                 break;
             case W_RESPONSE:
                 if ($hasWorker) {
-                    $this->free($this->workers[$sender]);
                     call_user_func($this->responder, $zmsg->pop());
+                    $this->free($this->workers[$sender]);
                 } else {
                     echo "E: Response from not ready worker `$sender` - disconnect ", PHP_EOL;
                     $this->send($sender, W_DISCONNECT);
