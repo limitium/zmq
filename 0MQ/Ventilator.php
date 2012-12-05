@@ -20,10 +20,13 @@ class Ventilator
     private $generator;
     private $responder;
 
-    public function __construct($verbose = false, $heartbeatDelay = 2500)
+    public function __construct($verbose = false, $heartbeatDelay = 2500, $context = null)
     {
-        $this->context = new ZMQContext();
-        $this->socket = $this->context->getSocket(ZMQ::SOCKET_ROUTER);
+        if (!$context) {
+            $context = new ZMQContext();
+        }
+        $this->context = $context;
+        $this->socket = $this->context->getSocket(ZMQ::SOCKET_XREP);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
         $this->poll = new ZMQPoll();
 
