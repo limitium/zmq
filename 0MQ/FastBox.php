@@ -57,7 +57,7 @@ class FastBox
 
     public function bind($back)
     {
-        $this->backend = $this->context->getSocket(ZMQ::SOCKET_ROUTER);
+        $this->backend = $this->context->getSocket(ZMQ::SOCKET_XREP);
         $this->backend->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
         $this->backend->bind($back);
         $this->poll->add($this->backend, ZMQ::POLL_IN);
