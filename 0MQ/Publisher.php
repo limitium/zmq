@@ -33,7 +33,7 @@ class Publisher
     {
         $msg = new Zmsg($this->socket);
         $msg->push($data);
-        $msg->wrap(microtime(true) * 1000);
+        $msg->wrap(sprintf("%.0f", microtime(1) * 1000));
         $msg->send(true);
     }
 
