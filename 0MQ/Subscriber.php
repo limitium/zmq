@@ -51,7 +51,7 @@ class Subscriber
             if ($delayTime > $this->normalDelay + $this->maxAllowedDelay) {
                 call_user_func($this->misser, $delayTime);
             }
-            call_user_func($this->listner, $zmsg->pop());
+            call_user_func($this->listner, $zmsg->pop(), $time);
             $this->sequence = $time;
         }
     }
