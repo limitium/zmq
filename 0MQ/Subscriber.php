@@ -56,9 +56,9 @@ class Subscriber
         }
     }
 
-    public function setListner($listner)
+    public function setListener($listener)
     {
-        $this->listner = $listner;
+        $this->listner = $listener;
     }
 
     public function setMisser($misser)
@@ -66,3 +66,4 @@ class Subscriber
         $this->misser = $misser;
     }
 }
+
