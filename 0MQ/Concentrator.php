@@ -19,6 +19,8 @@ class Concentrator
         $this->socket = $this->context->getSocket(ZMQ::SOCKET_SUB);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_SUBSCRIBE, "");
+
+        $this->poll = new ZMQPoll();
     }
 
     public function bind()
