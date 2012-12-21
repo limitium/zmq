@@ -7,6 +7,7 @@ class Concentrator
     private $context;
     private $socket;
     private $verbose;
+    private $poll;
 
 
     public function __construct($broker, $verbose = false)
@@ -23,6 +24,7 @@ class Concentrator
     public function bind()
     {
         $this->socket->bind($this->broker);
+        $this->poll->add($this->socket, ZMQ::POLL_IN);
         if ($this->verbose) {
             printf("I: sub listener at %s... %s", $this->broker, PHP_EOL);
         }
@@ -30,16 +32,20 @@ class Concentrator
 
     public function listen()
     {
+        $read = $write = array();
         while (true) {
-            $zmsg = new Zmsg($this->socket);
-            $zmsg->recv();
-            if ($this->verbose) {
-                echo "I: received message from client:", PHP_EOL;
-                echo $zmsg->__toString(), PHP_EOL;
-            }
+            $events = $this->poll->poll($read, $write, 1000);
             $msg = array();
-            while ($part = $zmsg->pop()) {
-                $msg[] = $part;
+            if ($events > 0) {
+                $zmsg = new Zmsg($this->socket);
+                $zmsg->recv();
+                if ($this->verbose) {
+                    echo "I: received message from client:", PHP_EOL;
+                    echo $zmsg->__toString(), PHP_EOL;
+                }
+                while ($part = $zmsg->pop()) {
+                    $msg[] = $part;
+                }
             }
             call_user_func($this->receiver, $msg);
         }

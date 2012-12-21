@@ -28,7 +28,6 @@ class Log
 
         $this->socket = $this->context->getSocket(ZMQ::SOCKET_PUB);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
-        $this->socket->setSockOpt(ZMQ::SOCKOPT_BACKLOG, 50);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_HWM, 50);
         $this->socket->connect($this->broker);
 
