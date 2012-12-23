@@ -48,6 +48,7 @@ class Log
         }
         $msg->wrap($level);
         $msg->wrap(sprintf("%.0f", microtime(1) * 1000));
+        $msg->wrap($this->socket->getSockOpt(ZMQ::SOCKOPT_IDENTITY));
         $msg->wrap($this->identifier);
         if ($this->verbose) {
             print_r("I: send msg");
