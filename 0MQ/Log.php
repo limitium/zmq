@@ -8,24 +8,24 @@ class Log
     const INFO = 3;
     const DEBUG = 4;
     private $context;
-    private $identifier;
+    private $type;
     private $broker;
     private $socket;
     private $verbose;
 
 
-    public function __construct($broker, $identifier, $verbose = false)
+    public function __construct($broker, $type, $verbose = false)
     {
         $this->context = new ZMQContext();
         $this->broker = $broker;
-        $this->identifier = $identifier;
+        $this->type = $type;
+        $this->identifier = md5(md5(microtime(1)) . rand(0, 1000));
         $this->verbose = $verbose;
         $this->connect();
     }
 
     private function connect()
     {
-
         $this->socket = $this->context->getSocket(ZMQ::SOCKET_PUB);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->setSockOpt(ZMQ::SOCKOPT_HWM, 50);
@@ -48,7 +48,7 @@ class Log
         }
         $msg->wrap($level);
         $msg->wrap(sprintf("%.0f", microtime(1) * 1000));
-        $msg->wrap($this->socket->getSockOpt(ZMQ::SOCKOPT_IDENTITY));
+        $msg->wrap($this->type);
         $msg->wrap($this->identifier);
         if ($this->verbose) {
             print_r("I: send msg");
