@@ -45,7 +45,6 @@ class Concentrator
                     echo "I: received message from client:", PHP_EOL;
                     echo $zmsg->__toString(), PHP_EOL;
                 }
-                $msg[] = $zmsg->address();
                 while ($part = $zmsg->pop()) {
                     $msg[] = $part;
                 }
