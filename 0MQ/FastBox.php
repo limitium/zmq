@@ -30,6 +30,7 @@ class FastBox
 
         $this->verbose = $verbose;
         $this->heartbeatDelay = $heartbeatDelay;
+        $this->queueLimit = $queueLimit;
 
         $this->queue = array();
         $this->workers = array();
