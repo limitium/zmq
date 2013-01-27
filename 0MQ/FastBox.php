@@ -17,11 +17,12 @@ class FastBox
     private $heartbeatMaxFails = 4;
 
     private $queue;
+    private $queueLimit;
     //workers
     private $workers;
     private $workersFree;
 
-    public function __construct($publisher, $verbose = false, $heartbeatDelay = 2500)
+    public function __construct($publisher, $verbose = false, $queueLimit = 100, $heartbeatDelay = 2500)
     {
         $this->context = new  ZMQContext();
         $this->poll = new ZMQPoll();
@@ -100,7 +101,9 @@ class FastBox
                             echo strlen($zmsg->__toString()), PHP_EOL;
                         }
                         $time = $zmsg->unwrap();
-                        array_unshift($this->queue, $zmsg->pop());
+                        if ($this->queueLimit > sizeof($this->queue)) {
+                            array_unshift($this->queue, $zmsg->pop());
+                        }
                     }
                 }
             }
