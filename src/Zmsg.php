@@ -1,6 +1,8 @@
 <?php
+
+namespace limitium\zmq;
+
 /* =========================================================================
-zmsg.php
 
 Multipart message class for example applications.
 
@@ -42,14 +44,14 @@ class Zmsg
     /**
      * Socket to send and receive via
      *
-     * @var ZMQSocket
+     * @var \ZMQSocket
      */
     private $_socket;
 
     /**
      * Constructor, accepts optional socket for sending/receiving.
      *
-     * @param ZMQSocket $socket
+     * @param \ZMQSocket $socket
      */
     public function __construct($socket = null)
     {
@@ -82,10 +84,10 @@ class Zmsg
     /**
      * Set the internal socket to use for sending or receiving.
      *
-     * @param ZMQSocket $socket
+     * @param \ZMQSocket $socket
      * @return Zmsg
      */
-    public function set_socket(ZMQSocket $socket)
+    public function set_socket(\ZMQSocket $socket)
     {
         $this->_socket = $socket;
         return $this;
@@ -107,7 +109,7 @@ class Zmsg
         $this->_parts = array();
         while (true) {
             $this->_parts[] = $this->_socket->recv();
-            if (!$this->_socket->getSockOpt(ZMQ::SOCKOPT_RCVMORE)) {
+            if (!$this->_socket->getSockOpt(\ZMQ::SOCKOPT_RCVMORE)) {
                 break;
             }
         }
@@ -129,7 +131,7 @@ class Zmsg
         $count = count($this->_parts);
         $i = 1;
         foreach ($this->_parts as $part) {
-            $mode = $i++ == $count ? null : ZMQ::MODE_SNDMORE;
+            $mode = $i++ == $count ? null : \ZMQ::MODE_SNDMORE;
             $this->_socket->send($part, $mode);
         }
         if ($clear) {
@@ -305,11 +307,11 @@ class Zmsg
     public static function test()
     {
         $result = true;
-        $context = new ZMQContext();
-        $output = new ZMQSocket($context, ZMQ::SOCKET_DEALER);
+        $context = new \ZMQContext();
+        $output = new \ZMQSocket($context, \ZMQ::SOCKET_DEALER);
         $output->bind("inproc://zmsg_selftest");
 
-        $input = new ZMQSocket($context, ZMQ::SOCKET_ROUTER);
+        $input = new \ZMQSocket($context, \ZMQ::SOCKET_ROUTER);
         $input->connect("inproc://zmsg_selftest");
 
 // Test send and receive of single-part message

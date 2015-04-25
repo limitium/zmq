@@ -1,81 +1,120 @@
 <?php
-require_once "commands.php";
-require_once "Zmsg.php";
 
-class Ventilator
+namespace limitium\zmq;
+
+class FastBox
 {
+    /**
+     * @var \ZMQContext
+     */
     private $context;
-    private $socket;
+    /**
+     * @var \ZMQSocket
+     */
+    private $backend;
+    /**
+     * @var \ZMQSocket
+     */
+    private $frontend;
+    private $publisher;
     private $poll;
-    private $verbose;
 
-// Heartbeat management
+    private $verbose;
+    // Heartbeat management
     private $heartbeatAt; // When to send HEARTBEAT
     private $heartbeatDelay; // Heartbeat delay, msecs
     private $heartbeatMaxFails = 4;
 
+    private $queue;
+    private $queueLimit;
     //workers
     private $workers;
     private $workersFree;
-    private $generator;
-    private $responder;
 
-    public function __construct($verbose = false, $heartbeatDelay = 2500, $context = null)
+    public function __construct($publisher, $verbose = false, $queueLimit = 100, $heartbeatDelay = 2500)
     {
-        if (!$context) {
-            $context = new ZMQContext();
-        }
-        $this->context = $context;
-        $this->socket = $this->context->getSocket(ZMQ::SOCKET_XREP);
-        $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
-        $this->poll = new ZMQPoll();
+        $this->context = new  \ZMQContext();
+        $this->poll = new \ZMQPoll();
+        $this->publisher = $publisher;
 
         $this->verbose = $verbose;
         $this->heartbeatDelay = $heartbeatDelay;
+        $this->queueLimit = $queueLimit;
+
+        $this->queue = array();
         $this->workers = array();
         $this->workersFree = array();
 
+        $this->connect();
     }
 
-    public function setGenerator($generator)
+    private function connect()
     {
-        $this->generator = $generator;
-    }
+        if ($this->frontend) {
+            $this->poll->remove($this->frontend);
+            unset($this->frontend);
+        }
 
-    public function setResponder($responder)
-    {
-        $this->responder = $responder;
-    }
+        $this->frontend = $this->context->getSocket(\ZMQ::SOCKET_SUB);
+        $this->frontend->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+        $this->frontend->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
+        $this->frontend->connect($this->publisher);
+        $this->poll->add($this->frontend, \ZMQ::POLL_IN);
 
-    public function bind($endpoint)
-    {
-        $this->socket->bind($endpoint);
-        $this->poll->add($this->socket, ZMQ::POLL_IN);
         if ($this->verbose) {
-            printf("I: Broker is active at %s %s", $endpoint, PHP_EOL);
+            printf("I: Connecting to publisher at %s... %s", $this->publisher, PHP_EOL);
+        }
+    }
+
+    public function bind($back)
+    {
+        $this->backend = $this->context->getSocket(\ZMQ::SOCKET_XREP);
+        $this->backend->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+        $this->backend->bind($back);
+        $this->poll->add($this->backend, \ZMQ::POLL_IN);
+        if ($this->verbose) {
+            printf("I: FastBox is active at %s %s", $back, PHP_EOL);
         }
 
     }
 
-    public function listen()
+    public function transfer()
     {
         $read = $write = array();
         while (1) {
             $events = $this->poll->poll($read, $write, $this->heartbeatDelay);
             if ($events > 0) {
-                $zmsg = new Zmsg($this->socket);
-                $zmsg->recv();
-                if ($this->verbose) {
-                    echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
-                }
+                foreach ($read as $socket) {
+                    //handle workers
+                    if ($socket === $this->backend) {
+                        $zmsg = new Zmsg($this->backend);
+                        $zmsg->recv();
+                        if ($this->verbose) {
+                            echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
+                        }
 
-                $sender = $zmsg->pop();
-                $empty = $zmsg->pop();
-                $header = $zmsg->pop();
-                if ($header == W_WORKER) {
-                    $this->process($sender, $zmsg);
-                } else {
-                    echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
+                        $sender = $zmsg->pop();
+                        $empty = $zmsg->pop();
+                        $header = $zmsg->pop();
+                        if ($header == Commands::W_WORKER) {
+                            $this->process($sender, $zmsg);
+                        } else {
+                            echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
+                        }
+                    }
+                    //handle publisher
+                    if ($socket === $this->frontend) {
+                        $zmsg = new Zmsg($this->frontend);
+                        $zmsg->recv();
+                        if ($this->verbose) {
+                            echo "I: received message from publisher size: ";
+                            echo strlen($zmsg->__toString()), PHP_EOL;
+                        }
+                        $time = $zmsg->unwrap();
+                        if ($this->queueLimit > sizeof($this->queue)) {
+                            array_unshift($this->queue, $zmsg->pop());
+                        }
+                    }
                 }
             }
 
@@ -91,7 +130,7 @@ class Ventilator
                 echo "I: send heartbeats to " . sizeof($this->workersFree) . " workers", PHP_EOL;
             }
             foreach ($this->workersFree as $worker) {
-                $this->workerSend($worker, W_HEARTBEAT);
+                $this->workerSend($worker, Commands::W_HEARTBEAT);
             }
             $this->heartbeatAt = microtime(true) + ($this->heartbeatDelay / 1000);
         }
@@ -103,7 +142,7 @@ class Ventilator
         $hasWorker = $this->hasWorker($sender);
 
         switch ($command) {
-            case W_READY:
+            case Commands::W_READY:
                 if (!$hasWorker) {
                     $this->addWorker($sender);
                 } else {
@@ -111,21 +150,21 @@ class Ventilator
                     $this->deleteWorker($this->workers[$sender], true);
                 }
                 break;
-            case W_HEARTBEAT:
+            case Commands::W_HEARTBEAT:
                 if ($hasWorker) {
                     $this->live($this->workers[$sender]);
                 } else {
                     echo "E: Heartbeat from not ready worker `$sender` - disconnect ", PHP_EOL;
-                    $this->send($sender, W_DISCONNECT);
+                    $this->send($sender, Commands::W_RESPONSE);
                 }
                 break;
-            case W_RESPONSE:
+            case Commands::W_RESPONSE:
                 if ($hasWorker) {
-                    call_user_func($this->responder, $zmsg->pop());
+                    $resp = $zmsg->pop();
                     $this->free($this->workers[$sender]);
                 } else {
                     echo "E: Response from not ready worker `$sender` - disconnect ", PHP_EOL;
-                    $this->send($sender, W_DISCONNECT);
+                    $this->send($sender, Commands::W_RESPONSE);
                 }
                 break;
             default:
@@ -139,7 +178,7 @@ class Ventilator
         if ($this->verbose) {
             echo "I: add new worker:", PHP_EOL;
         }
-        $worker = new VWorker($address);
+        $worker = new WorkerAddress($address);
         $this->workers[$address] = $worker;
         $this->free($worker);
         return $worker;
@@ -152,7 +191,7 @@ class Ventilator
         $this->generateTasks();
     }
 
-    private function live(VWorker $worker)
+    private function live(WorkerAddress $worker)
     {
         $worker->aliveFor($this->heartbeatMaxFails * $this->heartbeatDelay);
     }
@@ -162,7 +201,7 @@ class Ventilator
         return isset($this->workers[$address]);
     }
 
-    private function workerSend(VWorker $worker, $command, $data = null)
+    private function workerSend(WorkerAddress $worker, $command, $data = null)
     {
         $zmsg = null;
         if ($data) {
@@ -176,13 +215,13 @@ class Ventilator
     {
         $zmsg = $zmsg ? $zmsg : new Zmsg();
         $zmsg->push($command);
-        $zmsg->push(W_WORKER);
+        $zmsg->push(Commands::W_WORKER);
         $zmsg->wrap($address, "");
         if ($this->verbose) {
             printf("I: sending `%s` to worker %s", $command, PHP_EOL);
             echo $zmsg->__toString(), PHP_EOL, PHP_EOL;
         }
-        $zmsg->set_socket($this->socket)->send();
+        $zmsg->set_socket($this->backend)->send();
     }
 
     private function purgeWorkers()
@@ -195,13 +234,13 @@ class Ventilator
         }
     }
 
-    private function deleteWorker(VWorker $worker, $disconnect = false)
+    private function deleteWorker(WorkerAddress $worker, $disconnect = false)
     {
         if ($this->verbose) {
             echo "I: remove worker `$worker->address` " . ($disconnect ? "disconnect" : ""), PHP_EOL;
         }
         if ($disconnect) {
-            $this->workerSend($worker, W_DISCONNECT);
+            $this->workerSend($worker, Commands::W_RESPONSE);
         }
         unset($this->workers[$worker->address]);
         $index = array_search($worker, $this->workersFree);
@@ -214,27 +253,11 @@ class Ventilator
     {
         $this->purgeWorkers();
         foreach ($this->workersFree as $k => $worker) {
-            $task = call_user_func($this->generator);
+            $task = array_shift($this->queue);
             if ($task) {
-                $this->workerSend($worker, W_REQUEST, $task);
+                $this->workerSend($worker, Commands::W_REQUEST, $task);
                 unset($this->workersFree[$k]);
             }
         }
-    }
-}
-
-class VWorker
-{
-    public $address;
-    public $expiry;
-
-    public function __construct($address)
-    {
-        $this->address = $address;
-    }
-
-    public function aliveFor($time)
-    {
-        $this->expiry = microtime(1) + $time / 1000;
     }
 }

@@ -1,6 +1,6 @@
 <?php
-require_once "commands.php";
-require_once "Zmsg.php";
+
+namespace limitium\zmq;
 
 class Worker
 {
@@ -18,11 +18,9 @@ class Worker
     private $executer;
 
     public function __construct($broker, $verbose = false, $heartbeatDelay = 2500, $reconnectDelay = 5000)
-
-
     {
-        $this->context = new ZMQContext();
-        $this->poll = new ZMQPoll();
+        $this->context = new \ZMQContext();
+        $this->poll = new \ZMQPoll();
 
         $this->broker = $broker;
         $this->verbose = $verbose;
@@ -38,15 +36,15 @@ class Worker
             unset($this->socket);
         }
 
-        $this->socket = $this->context->getSocket(ZMQ::SOCKET_DEALER);
-        $this->socket->setSockOpt(ZMQ::SOCKOPT_LINGER, 0);
+        $this->socket = $this->context->getSocket(\ZMQ::SOCKET_DEALER);
+        $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->connect($this->broker);
-        $this->poll->add($this->socket, ZMQ::POLL_IN);
+        $this->poll->add($this->socket, \ZMQ::POLL_IN);
 
         if ($this->verbose) {
             printf("I: connecting to broker at %s... %s", $this->broker, PHP_EOL);
         }
-        $this->sendCommand(W_READY);
+        $this->sendCommand(Commands::W_READY);
         $this->heartbeatTriesLeft = $this->heartbeatMaxFails;
         $this->heartbeatAt = microtime(true) + ($this->heartbeatDelay / 1000);
     }
@@ -57,7 +55,7 @@ class Worker
             $msg = new Zmsg();
         }
         $msg->push($command);
-        $msg->push(W_WORKER);
+        $msg->push(Commands::W_WORKER);
         $msg->push("");
         if ($this->verbose) {
             printf("I: sending `%s` to broker %s", $command, PHP_EOL);
@@ -83,18 +81,18 @@ class Worker
 
                 $zmsg->pop();
                 $header = $zmsg->pop();
-                assert($header == W_WORKER);
+                assert($header == Commands::W_WORKER);
 
                 $command = $zmsg->pop();
-                if ($command == W_HEARTBEAT) {
+                if ($command == Commands::W_HEARTBEAT) {
 
-                } elseif ($command == W_REQUEST) {
+                } elseif ($command == Commands::W_REQUEST) {
                     //@todo: get address
                     $result = call_user_func($this->executer, $zmsg->pop());
                     $this->send($result);
                     //resp = HB
                     $sendHeartBeat = false;
-                } elseif ($command == W_DISCONNECT) {
+                } elseif ($command == Commands::W_RESPONSE) {
                     $this->connect();
                 } else {
                     echo "I: Unsupported command `$command`.", PHP_EOL;
@@ -116,7 +114,7 @@ class Worker
     {
         if (microtime(true) > $this->heartbeatAt) {
             if ($sendHeartBeat) {
-                $this->sendCommand(W_HEARTBEAT);
+                $this->sendCommand(Commands::W_HEARTBEAT);
             }
             $this->heartbeatAt = microtime(true) + ($this->heartbeatDelay / 1000);
         }
@@ -127,7 +125,7 @@ class Worker
         $zmsg = new Zmsg();
         $zmsg->body_set($data);
         //@todo: wrap address;
-        $this->sendCommand(W_RESPONSE, $zmsg);
+        $this->sendCommand(Commands::W_RESPONSE, $zmsg);
     }
 
     public function setExecuter($executer)
