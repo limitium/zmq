@@ -2,12 +2,24 @@
 
 namespace limitium\zmq;
 
+/**
+ * Receives messages from publishers manage them and sends back
+ *
+ * Class Worker
+ * @package limitium\zmq
+ */
 class Worker
 {
+    /**
+     * @var \ZMQContext
+     */
     private $context;
-    private $broker;
+    /**
+     * @var \ZMQSocket
+     */
     private $socket;
     private $poll;
+
     private $verbose;
 
     private $heartbeatAt;
@@ -17,12 +29,12 @@ class Worker
     private $heartbeatMaxFails = 4;
     private $executer;
 
-    public function __construct($broker, $verbose = false, $heartbeatDelay = 2500, $reconnectDelay = 5000)
+    public function __construct($publisherEndpoint, $verbose = false, $heartbeatDelay = 2500, $reconnectDelay = 5000)
     {
         $this->context = new \ZMQContext();
         $this->poll = new \ZMQPoll();
 
-        $this->broker = $broker;
+        $this->publisherEndpoint = $publisherEndpoint;
         $this->verbose = $verbose;
         $this->heartbeatDelay = $heartbeatDelay;
         $this->reconnectDelay = $reconnectDelay;
@@ -38,11 +50,11 @@ class Worker
 
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_DEALER);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
-        $this->socket->connect($this->broker);
+        $this->socket->connect($this->publisherEndpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
 
         if ($this->verbose) {
-            printf("I: connecting to broker at %s... %s", $this->broker, PHP_EOL);
+            printf("I: connecting to broker at %s... %s", $this->publisherEndpoint, PHP_EOL);
         }
         $this->sendCommand(Commands::W_READY);
         $this->heartbeatTriesLeft = $this->heartbeatMaxFails;

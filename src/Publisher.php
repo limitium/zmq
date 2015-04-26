@@ -2,6 +2,12 @@
 
 namespace limitium\zmq;
 
+/**
+ * Publish messages to endpoint
+ *
+ * Class Publisher
+ * @package limitium\zmq
+ */
 class Publisher
 {
     /**
@@ -17,7 +23,7 @@ class Publisher
      */
     private $verbose;
 
-    public function __construct($verbose = false, $context = null)
+    public function __construct($verbose = false, \ZMQContext $context = null)
     {
         if (!$context) {
             $context = new \ZMQContext();

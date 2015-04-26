@@ -2,6 +2,12 @@
 
 namespace limitium\zmq;
 
+/**
+ * Receive messages from publisher
+ *
+ * Class Subscriber
+ * @package limitium\zmq
+ */
 class Subscriber
 {
     /**
@@ -22,21 +28,20 @@ class Subscriber
     private $listner;
     private $misser;
 
-    public function __construct($broker, $maxAllowedDelay = 100, $verbose = false)
+    public function __construct($publisherEndpoint, $maxAllowedDelay = 100, $verbose = false)
     {
         $this->context = new \ZMQContext();
-        $this->broker = $broker;
         $this->verbose = $verbose;
-        $this->connect();
+        $this->connect($publisherEndpoint);
     }
 
-    private function connect()
+    private function connect($publisherEndpoint)
     {
 
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_SUB);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
-        $this->socket->connect($this->broker);
+        $this->socket->connect($publisherEndpoint);
 
         if ($this->verbose) {
             printf("I: connecting to publisher at %s... %s", $this->broker, PHP_EOL);

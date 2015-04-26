@@ -27,7 +27,7 @@ class Log implements LoggerInterface
     /**
      * @var Endpoint of log concentrator
      */
-    private $logEndPoint;
+    private $logEndpoint;
     /**
      * @var \ZMQSocket
      */
@@ -35,14 +35,14 @@ class Log implements LoggerInterface
     private $verbose;
 
     /**
-     * @param $logEndPoint Endpoint of log concentrator
+     * @param $logEndpoint Endpoint of log concentrator
      * @param $logName Service name in logs
      * @param bool $verbose
      */
-    public function __construct($logEndPoint, $logName, $verbose = false)
+    public function __construct($logEndpoint, $logName, $verbose = false)
     {
         $this->context = new \ZMQContext();
-        $this->logEndPoint = $logEndPoint;
+        $this->logEndpoint = $logEndpoint;
         $this->logName = $logName;
         $this->identifier = md5(md5(microtime(1)) . rand(0, 1000));
         $this->verbose = $verbose;
@@ -54,10 +54,10 @@ class Log implements LoggerInterface
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_PUB);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_HWM, 50);
-        $this->socket->connect($this->logEndPoint);
+        $this->socket->connect($this->logEndpoint);
 
         if ($this->verbose) {
-            printf("I: connecting to subscriber at %s... %s", $this->logEndPoint, PHP_EOL);
+            printf("I: connecting to subscriber at %s... %s", $this->logEndpoint, PHP_EOL);
         }
     }
 

@@ -3,7 +3,7 @@
 namespace limitium\zmq;
 
 /**
- * Collect messages from several publishers
+ * Collect messages from several publishers to callable
  *
  * Class Concentrator
  * @package limitium\zmq
@@ -28,13 +28,13 @@ class Concentrator
     private $poll;
 
     /**
-     * @param $broker Concentrator endpoint
+     * @param $endpoint Concentrator endpoint
      * @param bool $verbose
      */
-    public function __construct($broker, $verbose = false)
+    public function __construct($endpoint, $verbose = false)
     {
         $this->context = new \ZMQContext();
-        $this->broker = $broker;
+        $this->endpoint = $endpoint;
         $this->verbose = $verbose;
 
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_SUB);
@@ -46,10 +46,10 @@ class Concentrator
 
     public function bind()
     {
-        $this->socket->bind($this->broker);
+        $this->socket->bind($this->endpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
         if ($this->verbose) {
-            printf("I: sub listener at %s... %s", $this->broker, PHP_EOL);
+            printf("I: sub listener at %s... %s", $this->endpoint, PHP_EOL);
         }
     }
 

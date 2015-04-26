@@ -2,6 +2,12 @@
 
 namespace limitium\zmq;
 
+/**
+ * Collect messages from publishers and transfer them to workers
+ *
+ * Class FastBox
+ * @package limitium\zmq
+ */
 class FastBox
 {
     /**
@@ -16,7 +22,6 @@ class FastBox
      * @var \ZMQSocket
      */
     private $frontend;
-    private $publisher;
     private $poll;
 
     private $verbose;
@@ -31,11 +36,16 @@ class FastBox
     private $workers;
     private $workersFree;
 
-    public function __construct($publisher, $verbose = false, $queueLimit = 100, $heartbeatDelay = 2500)
+    /**
+     * @param $collectEndpoint
+     * @param bool $verbose
+     * @param int $queueLimit
+     * @param int $heartbeatDelay
+     */
+    public function __construct($collectEndpoint, $verbose = false, $queueLimit = 100, $heartbeatDelay = 2500)
     {
         $this->context = new  \ZMQContext();
         $this->poll = new \ZMQPoll();
-        $this->publisher = $publisher;
 
         $this->verbose = $verbose;
         $this->heartbeatDelay = $heartbeatDelay;
@@ -45,10 +55,10 @@ class FastBox
         $this->workers = array();
         $this->workersFree = array();
 
-        $this->connect();
+        $this->connect($collectEndpoint);
     }
 
-    private function connect()
+    private function connect($collectEndpoint)
     {
         if ($this->frontend) {
             $this->poll->remove($this->frontend);
@@ -58,7 +68,7 @@ class FastBox
         $this->frontend = $this->context->getSocket(\ZMQ::SOCKET_SUB);
         $this->frontend->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $this->frontend->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
-        $this->frontend->connect($this->publisher);
+        $this->frontend->connect($collectEndpoint);
         $this->poll->add($this->frontend, \ZMQ::POLL_IN);
 
         if ($this->verbose) {
@@ -66,14 +76,14 @@ class FastBox
         }
     }
 
-    public function bind($back)
+    public function bind($workersEndpoint)
     {
         $this->backend = $this->context->getSocket(\ZMQ::SOCKET_XREP);
         $this->backend->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
-        $this->backend->bind($back);
+        $this->backend->bind($workersEndpoint);
         $this->poll->add($this->backend, \ZMQ::POLL_IN);
         if ($this->verbose) {
-            printf("I: FastBox is active at %s %s", $back, PHP_EOL);
+            printf("I: FastBox is active at %s %s", $workersEndpoint, PHP_EOL);
         }
 
     }

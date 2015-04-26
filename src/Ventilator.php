@@ -2,6 +2,12 @@
 
 namespace limitium\zmq;
 
+/**
+ * Continuously sends non empty messages to free workers
+ *
+ * Class Ventilator
+ * @package limitium\zmq
+ */
 class Ventilator
 {
     private $context;
@@ -20,7 +26,7 @@ class Ventilator
     private $generator;
     private $responder;
 
-    public function __construct($verbose = false, $heartbeatDelay = 2500, $context = null)
+    public function __construct($verbose = false, $heartbeatDelay = 2500, \ZMQContext $context = null)
     {
         if (!$context) {
             $context = new \ZMQContext();
