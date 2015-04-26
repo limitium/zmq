@@ -36,3 +36,7 @@ dwsync.xml
 .CVS
 .idea
 
+composer.phar
+composer.lock
+
+vendor

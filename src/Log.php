@@ -2,28 +2,44 @@
 
 namespace limitium\zmq;
 
-class Log
+use Psr\Log\AbstractLogger;
+
+/**
+ * Class Log
+ * @package limitium\zmq
+ *
+ * ZMQ based Log publisher
+ */
+class Log extends AbstractLogger
 {
-    const ERROR = 1;
-    const WARN = 2;
-    const INFO = 3;
-    const DEBUG = 4;
     /**
      * @var \ZMQContext
      */
     private $context;
-
-    private $type;
-    private $broker;
+    /**
+     * @var Service name in logs
+     */
+    private $logName;
+    /**
+     * @var Endpoint of log concentrator
+     */
+    private $logEndPoint;
+    /**
+     * @var \ZMQSocket
+     */
     private $socket;
     private $verbose;
 
-
-    public function __construct($broker, $type, $verbose = false)
+    /**
+     * @param $logEndPoint Endpoint of log concentrator
+     * @param $logName Service name in logs
+     * @param bool $verbose
+     */
+    public function __construct($logEndPoint, $logName, $verbose = false)
     {
         $this->context = new \ZMQContext();
-        $this->broker = $broker;
-        $this->type = $type;
+        $this->logEndPoint = $logEndPoint;
+        $this->logName = $logName;
         $this->identifier = md5(md5(microtime(1)) . rand(0, 1000));
         $this->verbose = $verbose;
         $this->connect();
@@ -34,26 +50,30 @@ class Log
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_PUB);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_HWM, 50);
-        $this->socket->connect($this->broker);
+        $this->socket->connect($this->logEndPoint);
 
         if ($this->verbose) {
-            printf("I: connecting to subscriber at %s... %s", $this->broker, PHP_EOL);
+            printf("I: connecting to subscriber at %s... %s", $this->logEndPoint, PHP_EOL);
         }
     }
 
-    private function send($level, $data)
+    /**
+     * @param $level
+     * @param $data
+     * @param array $context
+     * @throws Exception
+     */
+    private function send($level, $data, array $context)
     {
         $msg = new Zmsg($this->socket);
         if (!is_array($data)) {
             $data = array($data);
         }
-        $data = array_reverse($data);
-        foreach ($data as $part) {
-            $msg->push($part);
-        }
+        $this->sendArray($context, $msg);
+        $this->sendArray($data, $msg);
         $msg->wrap($level);
         $msg->wrap(sprintf("%.0f", microtime(1) * 1000));
-        $msg->wrap($this->type);
+        $msg->wrap($this->logName);
         $msg->wrap($this->identifier);
         if ($this->verbose) {
             print_r("I: send msg");
@@ -62,23 +82,28 @@ class Log
         $msg->send(true);
     }
 
-    public function error($data)
+    /**
+     * @param array $data
+     * @param Zmsg $msg
+     */
+    private function sendArray(array $data, Zmsg $msg)
     {
-        $this->send(Log::ERROR, $data);
+        $data = array_reverse($data);
+        foreach ($data as $part) {
+            $msg->push($part);
+        }
     }
 
-    public function warn($data)
+    /**
+     * Logs with an arbitrary level.
+     *
+     * @param mixed $level
+     * @param string $message
+     * @param array $context
+     * @return null
+     */
+    public function log($level, $message, array $context = array())
     {
-        $this->send(Log::WARN, $data);
-    }
-
-    public function info($data)
-    {
-        $this->send(Log::INFO, $data);
-    }
-
-    public function debug($data)
-    {
-        $this->send(Log::DEBUG, $data);
+        $this->send($level, $message, $context);
     }
 }
