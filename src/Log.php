@@ -2,16 +2,20 @@
 
 namespace limitium\zmq;
 
-use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerTrait;
 
 /**
+ * PSR-3 log message publisher
+ *
  * Class Log
  * @package limitium\zmq
- *
- * ZMQ based Log publisher
  */
-class Log extends AbstractLogger
+class Log implements LoggerInterface
 {
+    use LoggerTrait;
+
+    const CONTEXT_DELIMITER = "cont";
     /**
      * @var \ZMQContext
      */
@@ -69,7 +73,10 @@ class Log extends AbstractLogger
         if (!is_array($data)) {
             $data = array($data);
         }
-        $this->sendArray($context, $msg);
+        if (sizeof($context) > 0) {
+            $this->sendArray($context, $msg);
+            $msg->wrap(Log::CONTEXT_DELIMITER);
+        }
         $this->sendArray($data, $msg);
         $msg->wrap($level);
         $msg->wrap(sprintf("%.0f", microtime(1) * 1000));

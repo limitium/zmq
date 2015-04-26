@@ -2,6 +2,12 @@
 
 namespace limitium\zmq;
 
+/**
+ * Collect messages from several publishers
+ *
+ * Class Concentrator
+ * @package limitium\zmq
+ */
 class Concentrator
 {
     /**
@@ -21,6 +27,10 @@ class Concentrator
      */
     private $poll;
 
+    /**
+     * @param $broker Concentrator endpoint
+     * @param bool $verbose
+     */
     public function __construct($broker, $verbose = false)
     {
         $this->context = new \ZMQContext();
@@ -64,7 +74,7 @@ class Concentrator
         }
     }
 
-    public function setReceiver($receiver)
+    public function setReceiver(callable $receiver)
     {
         $this->receiver = $receiver;
     }

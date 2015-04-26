@@ -128,7 +128,7 @@ class Worker
         $this->sendCommand(Commands::W_RESPONSE, $zmsg);
     }
 
-    public function setExecuter($executer)
+    public function setExecuter(callable $executer)
     {
         $this->executer = $executer;
     }

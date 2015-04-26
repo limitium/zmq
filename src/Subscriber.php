@@ -66,12 +66,12 @@ class Subscriber
         }
     }
 
-    public function setListener($listener)
+    public function setListener(callable $listener)
     {
         $this->listner = $listener;
     }
 
-    public function setMisser($misser)
+    public function setMisser(callable $misser)
     {
         $this->misser = $misser;
     }

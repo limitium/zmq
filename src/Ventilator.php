@@ -37,12 +37,12 @@ class Ventilator
 
     }
 
-    public function setGenerator($generator)
+    public function setGenerator(callable $generator)
     {
         $this->generator = $generator;
     }
 
-    public function setResponder($responder)
+    public function setResponder(callable $responder)
     {
         $this->responder = $responder;
     }
