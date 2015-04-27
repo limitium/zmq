@@ -14,10 +14,10 @@ class ZmsgTest extends PHPUnit_Framework_TestCase
     {
         $context = new \ZMQContext();
         self::$outputSocket = new \ZMQSocket($context, \ZMQ::SOCKET_DEALER);
-        self::$outputSocket->bind("inproc://zmsg_selftest");
+        self::$outputSocket->bind("inproc://zmq_zmsg");
 
         self::$inputSocket = new \ZMQSocket($context, \ZMQ::SOCKET_ROUTER);
-        self::$inputSocket->connect("inproc://zmsg_selftest");
+        self::$inputSocket->connect("inproc://zmq_zmsg");
     }
 
     public function testSinglePartMessage()

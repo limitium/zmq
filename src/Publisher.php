@@ -23,7 +23,7 @@ class Publisher
      */
     private $verbose;
 
-    public function __construct($verbose = false, \ZMQContext $context = null)
+    public function __construct($endpoint, \ZMQContext $context = null, $verbose = false)
     {
         if (!$context) {
             $context = new \ZMQContext();
@@ -32,11 +32,12 @@ class Publisher
         $this->verbose = $verbose;
 
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_PUB);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_HWM, 1);
+        $this->socket->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+        $this->bind($endpoint);
     }
 
-    public function bind($endpoint)
+    private function bind($endpoint)
     {
         $this->socket->bind($endpoint);
         if ($this->verbose) {
