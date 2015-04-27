@@ -15,16 +15,30 @@ class PublisherTest extends PHPUnit_Framework_TestCase
         $endpoint = "inproc://zmq_publisher";
         $publisher = new Publisher($endpoint, $context);
 
+        $sub1 = $this->createSubscriber($context, $endpoint);
+        $sub2 = $this->createSubscriber($context, $endpoint);
+
+        $msgOut = "azaza";
+        $publisher->send($msgOut);
+
+        $sub1->recv();
+        $sub2->recv();
+
+        $this->assertTrue($sub1->body() == $msgOut);
+        $this->assertTrue($sub2->body() == $msgOut);
+    }
+
+    /**
+     * @param $context
+     * @param $endpoint
+     * @return Zmsg
+     */
+    private function createSubscriber($context, $endpoint)
+    {
         $receiver = new \ZMQSocket($context, \ZMQ::SOCKET_SUB);
         $receiver->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $receiver->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
         $receiver->connect($endpoint);
-        $zmsgi = new Zmsg($receiver);
-
-        $msgOut = "azaza";
-        $publisher->send($msgOut);
-        $zmsgi->recv();
-
-        $this->assertTrue($zmsgi->body() == $msgOut);
+        return new Zmsg($receiver);
     }
 }

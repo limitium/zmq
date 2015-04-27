@@ -34,6 +34,7 @@ class Publisher
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_PUB);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+
         $this->bind($endpoint);
     }
 
