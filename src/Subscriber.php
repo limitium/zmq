@@ -12,6 +12,7 @@ class Subscriber extends BaseBroker
 {
 
     private $normalDelay = false;
+    private $isListen = true;
     private $maxAllowedDelay;
     private $listner;
     private $misser;
@@ -45,8 +46,23 @@ class Subscriber extends BaseBroker
      */
     public function listen()
     {
-        while (true) {
-            $this->receiveMessage();
+        while ($this->isListen) {
+            $zmsg = new Zmsg($this->socket);
+            $zmsg->recv();
+            if ($this->verbose) {
+                echo "I: received message from broker:", PHP_EOL;
+                echo $zmsg->__toString(), PHP_EOL;
+            }
+            $time = $zmsg->unwrap();
+            if (!$this->normalDelay) {
+                $this->normalDelay = microtime(true) * 1000 - (double)$time;
+            }
+
+            $delayTime = microtime(true) * 1000 - (double)$time;
+            if ($this->misser && $delayTime > $this->normalDelay + $this->maxAllowedDelay) {
+                call_user_func($this->misser, $zmsg->pop(), $time, $delayTime);
+            }
+            call_user_func($this->listner, $zmsg->pop(), $time);
         }
     }
 
@@ -75,27 +91,12 @@ class Subscriber extends BaseBroker
     }
 
     /**
-     * Receive single message
-     * @throws Exception
+     * Stops to listen for messages
      */
-    public function receiveMessage()
+    public function stop()
     {
-        $zmsg = new Zmsg($this->socket);
-        $zmsg->recv();
-        if ($this->verbose) {
-            echo "I: received message from broker:", PHP_EOL;
-            echo $zmsg->__toString(), PHP_EOL;
-        }
-        $time = $zmsg->unwrap();
-        if (!$this->normalDelay) {
-            $this->normalDelay = microtime(true) * 1000 - (double)$time;
-        }
-
-        $delayTime = microtime(true) * 1000 - (double)$time;
-        if ($this->misser && $delayTime > $this->normalDelay + $this->maxAllowedDelay) {
-            call_user_func($this->misser, $zmsg->pop(), $time, $delayTime);
-        }
-        call_user_func($this->listner, $zmsg->pop(), $time);
+        $this->isListen = false;
     }
+
 }
 

@@ -24,17 +24,17 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
         $pubMsg->wrap(sprintf("%.0f", microtime(1) * 1000));
         $pubMsg->send(true);
 
-        $subscriber1->setListener(function ($msg, $time) use ($msgOut) {
+        $subscriber1->setListener(function ($msg, $time) use ($msgOut, $subscriber1) {
             $this->assertTrue($msg == $msgOut);
-
+            $subscriber1->stop();
         })
-            ->receiveMessage();
+            ->listen();
 
-        $subscriber2->setListener(function ($msg, $time) use ($msgOut) {
+        $subscriber2->setListener(function ($msg, $time) use ($msgOut, $subscriber2) {
             $this->assertTrue($msg == $msgOut);
-
+            $subscriber2->stop();
         })
-            ->receiveMessage();
+            ->listen();
     }
 
     /**
