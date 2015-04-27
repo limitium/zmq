@@ -8,41 +8,27 @@ namespace limitium\zmq;
  * Class Publisher
  * @package limitium\zmq
  */
-class Publisher
+class Publisher extends BaseBroker
 {
-    /**
-     * @var \ZMQContext
-     */
-    private $context;
-    /**
-     * @var \ZMQSocket
-     */
-    private $socket;
-    /**
-     * @var bool
-     */
-    private $verbose;
 
     public function __construct($endpoint, \ZMQContext $context = null, $verbose = false)
     {
-        if (!$context) {
-            $context = new \ZMQContext();
-        }
-        $this->context = $context;
-        $this->verbose = $verbose;
+        parent::__construct($endpoint, $context, $verbose);
 
-        $this->socket = $this->context->getSocket(\ZMQ::SOCKET_PUB);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+        $this->createSocket(\ZMQ::SOCKET_PUB,
+            [
+                \ZMQ::SOCKOPT_SNDHWM => 1,
+                \ZMQ::SOCKOPT_LINGER => 0
+            ]);
 
-        $this->bind($endpoint);
+        $this->bind();
     }
 
-    private function bind($endpoint)
+    private function bind()
     {
-        $this->socket->bind($endpoint);
+        $this->socket->bind($this->endpoint);
         if ($this->verbose) {
-            printf("I: Publisher is active at %s %s", $endpoint, PHP_EOL);
+            printf("I: Publisher is active at %s %s", $this->endpoint, PHP_EOL);
         }
 
     }

@@ -24,7 +24,9 @@ class PublisherTest extends PHPUnit_Framework_TestCase
         $sub1->recv();
         $sub2->recv();
 
+        $this->assertTrue($sub1->parts() == 2);
         $this->assertTrue($sub1->body() == $msgOut);
+        $this->assertTrue($sub2->parts() == 2);
         $this->assertTrue($sub2->body() == $msgOut);
     }
 
