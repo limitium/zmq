@@ -12,25 +12,27 @@ class ZmsgTest extends PHPUnit_Framework_TestCase
 
     public static function setUpBeforeClass()
     {
+        $endpoint = "inproc://zmq_zmsg";
+
         $context = new \ZMQContext();
         self::$outputSocket = new \ZMQSocket($context, \ZMQ::SOCKET_DEALER);
-        self::$outputSocket->bind("inproc://zmq_zmsg");
+        self::$outputSocket->bind($endpoint);
 
         self::$inputSocket = new \ZMQSocket($context, \ZMQ::SOCKET_ROUTER);
-        self::$inputSocket->connect("inproc://zmq_zmsg");
+        self::$inputSocket->connect($endpoint);
     }
 
     public function testSinglePartMessage()
     {
         $zmsgo = new Zmsg(self::$outputSocket);
         $zmsgo->body_set("Hello");
-        $this->assertTrue($zmsgo->body() == "Hello");
+        $this->assertEquals($zmsgo->body(), "Hello");
         $zmsgo->send();
 
         $zmsgi = new Zmsg(self::$inputSocket);
         $zmsgi->recv();
-        $this->assertTrue($zmsgi->parts() == 2);
-        $this->assertTrue($zmsgi->body() == "Hello");
+        $this->assertEquals($zmsgi->parts(), 2);
+        $this->assertEquals($zmsgi->body(), "Hello");
     }
 
     public function testMultiPartMessage()
@@ -39,26 +41,26 @@ class ZmsgTest extends PHPUnit_Framework_TestCase
         $zmsgo->body_set("Hello");
         $zmsgo->wrap("address1", "");
         $zmsgo->wrap("address2");
-        $this->assertTrue($zmsgo->parts() == 4);
+        $this->assertEquals($zmsgo->parts(), 4);
         $zmsgo->send();
 
         $zmsgi = new Zmsg(self::$inputSocket);
         $zmsgi->recv();
-        $this->assertTrue($zmsgi->parts() == 5);
+        $this->assertEquals($zmsgi->parts(), 5);
         $zmsgi->unwrap();
-        $this->assertTrue($zmsgi->unwrap() == "address2");
+        $this->assertEquals($zmsgi->unwrap(), "address2");
 
         $zmsgi->body_fmt("%s%s", 'W', "orld");
-        $this->assertTrue($zmsgi->body() == "World");
+        $this->assertEquals($zmsgi->body(), "World");
 
 // Pull off address 1, check that empty part was dropped
         $zmsgi->unwrap();
-        $this->assertTrue($zmsgi->parts() == 1);
+        $this->assertEquals($zmsgi->parts(), 1);
 
 // Check that message body was correctly modified
         $part = $zmsgi->pop();
-        $this->assertTrue($part == "World");
-        $this->assertTrue($zmsgi->parts() == 0);
+        $this->assertEquals($part, "World");
+        $this->assertEquals($zmsgi->parts(), 0);
     }
 
     public function testSaveLoad()
@@ -67,15 +69,15 @@ class ZmsgTest extends PHPUnit_Framework_TestCase
         $zmsg->body_set("Hello");
         $zmsg->wrap("address1", "");
         $zmsg->wrap("address2");
-        $this->assertTrue($zmsg->parts() == 4);
+        $this->assertEquals($zmsg->parts(), 4);
         $fh = fopen(sys_get_temp_dir() . "/zmsgtest.zmsg", 'w');
         $zmsg->save($fh);
         fclose($fh);
         $fh = fopen(sys_get_temp_dir() . "/zmsgtest.zmsg", 'r');
         $zmsg2 = new Zmsg();
         $zmsg2->load($fh);
-        $this->assertTrue($zmsg2->last() == $zmsg->last());
+        $this->assertEquals($zmsg2->last(), $zmsg->last());
         fclose($fh);
-        $this->assertTrue($zmsg2->parts() == 4);
+        $this->assertEquals($zmsg2->parts(), 4);
     }
 }

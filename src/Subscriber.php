@@ -46,6 +46,7 @@ class Subscriber extends BaseBroker
      */
     public function listen()
     {
+        $this->isListen = true;
         while ($this->isListen) {
             $zmsg = new Zmsg($this->socket);
             $zmsg->recv();
@@ -92,10 +93,13 @@ class Subscriber extends BaseBroker
 
     /**
      * Stops to listen for messages
+     *
+     * @return $this
      */
     public function stop()
     {
         $this->isListen = false;
+        return $this;
     }
 
 }

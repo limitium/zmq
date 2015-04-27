@@ -8,58 +8,55 @@ namespace limitium\zmq;
  * Class Concentrator
  * @package limitium\zmq
  */
-class Concentrator
+class Concentrator extends BaseBroker
 {
-    /**
-     * @var \ZMQContext
-     */
-    private $context;
-    /**
-     * @var \ZMQSocket
-     */
-    private $socket;
-    /**
-     * @var bool
-     */
-    private $verbose;
+    private $isListen;
     /**
      * @var \ZMQPoll
      */
     private $poll;
 
     /**
-     * @param $endpoint Concentrator endpoint
+     * @param $endpoint
+     * @param \ZMQContext $context
      * @param bool $verbose
      */
-    public function __construct($endpoint, $verbose = false)
+    public function __construct($endpoint, \ZMQContext $context = null, $verbose = false)
     {
-        $this->context = new \ZMQContext();
-        $this->endpoint = $endpoint;
-        $this->verbose = $verbose;
+        parent::__construct($endpoint, $context, $verbose);
 
-        $this->socket = $this->context->getSocket(\ZMQ::SOCKET_SUB);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
+        $this->createSocket(\ZMQ::SOCKET_SUB, [
+            \ZMQ::SOCKOPT_LINGER => 0,
+            \ZMQ::SOCKOPT_SUBSCRIBE => ""
+        ]);
 
         $this->poll = new \ZMQPoll();
+
+        $this->bind();
     }
 
-    public function bind()
+    private function bind()
     {
         $this->socket->bind($this->endpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
         if ($this->verbose) {
-            printf("I: sub listener at %s... %s", $this->endpoint, PHP_EOL);
+            printf("I: concentrator listener at %s... %s", $this->endpoint, PHP_EOL);
         }
     }
 
+    /**
+     * Start listen for messages in loop
+     *
+     * @throws Exception
+     */
     public function listen()
     {
-        $read = $write = array();
-        while (true) {
+        $this->isListen = true;
+        $read = $write = [];
+        while ($this->isListen) {
             $events = $this->poll->poll($read, $write, 1000);
-            $msg = array();
             if ($events > 0) {
+                $msg = [];
                 $zmsg = new Zmsg($this->socket);
                 $zmsg->recv();
                 if ($this->verbose) {
@@ -69,13 +66,31 @@ class Concentrator
                 while ($part = $zmsg->pop()) {
                     $msg[] = $part;
                 }
+                call_user_func($this->receiver, $msg);
             }
-            call_user_func($this->receiver, $msg);
         }
     }
 
+    /**
+     * Called on every received message
+     *
+     * @param callable $receiver with params $msg, $sendTime
+     * @return $this
+     */
     public function setReceiver(callable $receiver)
     {
         $this->receiver = $receiver;
+        return $this;
+    }
+
+    /**
+     * Stops to listen for messages
+     *
+     * @return $this
+     */
+    public function stop()
+    {
+        $this->isListen = false;
+        return $this;
     }
 }

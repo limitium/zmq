@@ -13,7 +13,7 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
     {
         $context = new \ZMQContext();
 
-        $endpoint = "inproc://zmq_receiver";
+        $endpoint = "inproc://zmq_subscriber";
         $subscriber1 = new Subscriber($endpoint, $context, 111);
         $subscriber2 = new Subscriber($endpoint, $context, 111);
 
@@ -25,13 +25,13 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
         $pubMsg->send(true);
 
         $subscriber1->setListener(function ($msg, $time) use ($msgOut, $subscriber1) {
-            $this->assertTrue($msg == $msgOut);
+            $this->assertEquals($msg, $msgOut);
             $subscriber1->stop();
         })
             ->listen();
 
         $subscriber2->setListener(function ($msg, $time) use ($msgOut, $subscriber2) {
-            $this->assertTrue($msg == $msgOut);
+            $this->assertEquals($msg, $msgOut);
             $subscriber2->stop();
         })
             ->listen();
