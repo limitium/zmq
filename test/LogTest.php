@@ -18,15 +18,15 @@ class LogTest extends PHPUnit_Framework_TestCase
     public function testTwoLoggerWithSimpleMsg()
     {
         $endpoint = "inproc://zmq_logger1";
-        $collector = $this->createCollector(self::$context, $endpoint);
+
 
         $log1 = new Log('l1', $endpoint, self::$context);
         $log2 = new Log('l2', $endpoint, self::$context);
 
+        $collector = $this->createCollector(self::$context, $endpoint);
 
         $msgOut = "ololo";
         $log1->emergency($msgOut);
-
         $collector->recv();
 
         $this->assertEquals($collector->parts(), 4);
@@ -51,8 +51,8 @@ class LogTest extends PHPUnit_Framework_TestCase
     {
         $endpoint = "inproc://zmq_logger2";
         $log1 = new Log('l3', $endpoint, self::$context);
-        $collector = $this->createCollector(self::$context, $endpoint);
 
+        $collector = $this->createCollector(self::$context, $endpoint);
 
         $msgOut = "asd123";
         $context = [
