@@ -85,6 +85,7 @@ class LogTest extends PHPUnit_Framework_TestCase
         $receiver->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $receiver->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
         $receiver->bind($endpoint);
+        sleep(1);
         return new Zmsg($receiver);
     }
 }

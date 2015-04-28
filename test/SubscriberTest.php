@@ -48,6 +48,7 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
         $publisher->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
         $publisher->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $publisher->bind($endpoint);
+        sleep(1);
         return new Zmsg($publisher);
     }
 }
