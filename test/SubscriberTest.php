@@ -14,10 +14,12 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
         $context = new \ZMQContext();
 
         $endpoint = "inproc://zmq_subscriber";
+
+        $pubMsg = $this->createPublisher($context, $endpoint);
+
         $subscriber1 = new Subscriber($endpoint, $context, 111);
         $subscriber2 = new Subscriber($endpoint, $context, 111);
 
-        $pubMsg = $this->createPublisher($context, $endpoint);
 
         $msgOut = "qweqwe";
         $pubMsg->push($msgOut);
@@ -48,7 +50,6 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
         $publisher->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
         $publisher->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $publisher->bind($endpoint);
-        sleep(1);
         return new Zmsg($publisher);
     }
 }

@@ -14,7 +14,6 @@ class PublisherTest extends PHPUnit_Framework_TestCase
 
         $endpoint = "inproc://zmq_publisher";
         $publisher = new Publisher($endpoint, $context);
-        sleep(1);
 
         $sub1 = $this->createSubscriber($context, $endpoint);
         $sub2 = $this->createSubscriber($context, $endpoint);

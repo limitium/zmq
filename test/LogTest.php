@@ -18,9 +18,10 @@ class LogTest extends PHPUnit_Framework_TestCase
     public function testTwoLoggerWithSimpleMsg()
     {
         $endpoint = "inproc://zmq_logger1";
+        $collector = $this->createCollector(self::$context, $endpoint);
+
         $log1 = new Log('l1', $endpoint, self::$context);
         $log2 = new Log('l2', $endpoint, self::$context);
-        $collector = $this->createCollector(self::$context, $endpoint);
 
 
         $msgOut = "ololo";
@@ -85,7 +86,6 @@ class LogTest extends PHPUnit_Framework_TestCase
         $receiver->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
         $receiver->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
         $receiver->bind($endpoint);
-        sleep(1);
         return new Zmsg($receiver);
     }
 }
