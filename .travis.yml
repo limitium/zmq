@@ -1,5 +1,9 @@
 language: php
 
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y libzmq3-dev
+
 php:
   - 5.4
   - 5.5
