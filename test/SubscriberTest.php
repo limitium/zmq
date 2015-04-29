@@ -15,11 +15,11 @@ class SubscriberTest extends PHPUnit_Framework_TestCase
 
         $endpoint = "inproc://zmq_subscriber";
 
+        $pubMsg = $this->createPublisher($context, $endpoint);
 
         $subscriber1 = new Subscriber($endpoint, $context, 111);
         $subscriber2 = new Subscriber($endpoint, $context, 111);
 
-        $pubMsg = $this->createPublisher($context, $endpoint);
 
         $msgOut = "qweqwe";
         $pubMsg->push($msgOut);
