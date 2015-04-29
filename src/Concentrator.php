@@ -24,7 +24,9 @@ class Concentrator extends PollBroker
     {
         parent::__construct($endpoint, 1000, $context, $verbose);
 
-        $this->createSocket(\ZMQ::SOCKET_PULL);
+        $this->createSocket(\ZMQ::SOCKET_PULL,[
+//            \ZMQ::SOCKOPT_SUBSCRIBE => ""
+        ]);
 
         $this->bind();
     }

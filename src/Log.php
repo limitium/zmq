@@ -37,8 +37,7 @@ class Log extends BaseBroker implements LoggerInterface
     private function connect()
     {
         $this->createSocket(\ZMQ::SOCKET_PUSH, [
-            \ZMQ::SOCKOPT_LINGER => 0,
-            \ZMQ::SOCKOPT_HWM => 50
+            \ZMQ::SOCKOPT_HWM => 0
         ]);
         $this->socket->connect($this->endpoint);
 
