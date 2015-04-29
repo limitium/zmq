@@ -8,37 +8,49 @@ namespace limitium\zmq;
  * Class Worker
  * @package limitium\zmq
  */
-class Worker
+class Worker extends PollBroker
 {
-    /**
-     * @var \ZMQContext
-     */
-    private $context;
-    /**
-     * @var \ZMQSocket
-     */
-    private $socket;
-    private $poll;
-
-    private $verbose;
-
     private $heartbeatAt;
     private $heartbeatDelay;
     private $reconnectDelay;
     private $heartbeatTriesLeft;
     private $heartbeatMaxFails = 4;
-    private $executer;
+    /**
+     * @var callable
+     */
+    private $executor;
 
-    public function __construct($publisherEndpoint, $verbose = false, $heartbeatDelay = 2500, $reconnectDelay = 5000)
+    public function __construct($endpoint, $heartbeatDelay = 2500, $reconnectDelay = 5000, \ZMQContext $context = null, $verbose)
     {
-        $this->context = new \ZMQContext();
-        $this->poll = new \ZMQPoll();
+        parent::__construct($endpoint, $heartbeatDelay, $context, $verbose);
 
-        $this->publisherEndpoint = $publisherEndpoint;
-        $this->verbose = $verbose;
         $this->heartbeatDelay = $heartbeatDelay;
         $this->reconnectDelay = $reconnectDelay;
+
         $this->connect();
+    }
+
+    /**
+     * Sets executor for worker
+     * @param callable $executor
+     * @return $this
+     */
+    public function setExecutor(callable $executor)
+    {
+        $this->executor = $executor;
+        return $this;
+    }
+
+    /**
+     * Start work
+     * @throws \Exception
+     */
+    public function work()
+    {
+        if (!$this->executor) {
+            throw new \Exception("Empty executor");
+        }
+        $this->poll();
     }
 
     private function connect()
@@ -50,11 +62,11 @@ class Worker
 
         $this->socket = $this->context->getSocket(\ZMQ::SOCKET_DEALER);
         $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
-        $this->socket->connect($this->publisherEndpoint);
+        $this->socket->connect($this->endpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
 
         if ($this->verbose) {
-            printf("I: connecting to broker at %s... %s", $this->publisherEndpoint, PHP_EOL);
+            printf("I: connecting to broker at %s... %s", $this->endpoint, PHP_EOL);
         }
         $this->sendCommand(Commands::W_READY);
         $this->heartbeatTriesLeft = $this->heartbeatMaxFails;
@@ -76,52 +88,6 @@ class Worker
         $msg->set_socket($this->socket)->send();
     }
 
-    public function work()
-    {
-        $read = $write = array();
-        while (true) {
-            $events = $this->poll->poll($read, $write, $this->heartbeatDelay);
-            $sendHeartBeat = true;
-            if ($events) {
-                $zmsg = new Zmsg($this->socket);
-                $zmsg->recv();
-                if ($this->verbose) {
-                    echo "I: received message from broker:", PHP_EOL;
-                    echo $zmsg->__toString(), PHP_EOL;
-                }
-                $this->heartbeatTriesLeft = $this->heartbeatMaxFails;
-
-                $zmsg->pop();
-                $header = $zmsg->pop();
-                assert($header == Commands::W_WORKER);
-
-                $command = $zmsg->pop();
-                if ($command == Commands::W_HEARTBEAT) {
-
-                } elseif ($command == Commands::W_REQUEST) {
-                    //@todo: get address
-                    $result = call_user_func($this->executer, $zmsg->pop());
-                    $this->send($result);
-                    //resp = HB
-                    $sendHeartBeat = false;
-                } elseif ($command == Commands::W_RESPONSE) {
-                    $this->connect();
-                } else {
-                    echo "I: Unsupported command `$command`.", PHP_EOL;
-                    echo $zmsg->__toString(), PHP_EOL, PHP_EOL;
-                }
-            } elseif (--$this->heartbeatTriesLeft == 0) {
-                if ($this->verbose) {
-                    echo "I: disconnected from broker - retrying... ", PHP_EOL;
-                }
-                usleep($this->reconnectDelay * 1000);
-                $this->connect();
-            }
-
-            $this->sendHeartbeat($sendHeartBeat);
-        }
-    }
-
     private function sendHeartbeat($sendHeartBeat)
     {
         if (microtime(true) > $this->heartbeatAt) {
@@ -132,7 +98,7 @@ class Worker
         }
     }
 
-    public function send($data)
+    private function send($data)
     {
         $zmsg = new Zmsg();
         $zmsg->body_set($data);
@@ -140,9 +106,46 @@ class Worker
         $this->sendCommand(Commands::W_RESPONSE, $zmsg);
     }
 
-    public function setExecuter(callable $executer)
+    protected function onPoll($events, $read, $write)
     {
-        $this->executer = $executer;
-    }
+        $events = $this->poll->poll($read, $write, $this->heartbeatDelay);
+        $sendHeartBeat = true;
+        if ($events) {
+            $zmsg = new Zmsg($this->socket);
+            $zmsg->recv();
+            if ($this->verbose) {
+                echo "I: received message from broker:", PHP_EOL;
+                echo $zmsg->__toString(), PHP_EOL;
+            }
+            $this->heartbeatTriesLeft = $this->heartbeatMaxFails;
 
+            $zmsg->pop();
+            $header = $zmsg->pop();
+            assert($header == Commands::W_WORKER);
+
+            $command = $zmsg->pop();
+            if ($command == Commands::W_HEARTBEAT) {
+
+            } elseif ($command == Commands::W_REQUEST) {
+                //@todo: get address
+                $result = call_user_func($this->executor, $zmsg->pop());
+                $this->send($result);
+                //resp = HB
+                $sendHeartBeat = false;
+            } elseif ($command == Commands::W_RESPONSE) {
+                $this->connect();
+            } else {
+                echo "I: Unsupported command `$command`.", PHP_EOL;
+                echo $zmsg->__toString(), PHP_EOL, PHP_EOL;
+            }
+        } elseif (--$this->heartbeatTriesLeft == 0) {
+            if ($this->verbose) {
+                echo "I: disconnected from broker - retrying... ", PHP_EOL;
+            }
+            usleep($this->reconnectDelay * 1000);
+            $this->connect();
+        }
+
+        $this->sendHeartbeat($sendHeartBeat);
+    }
 }

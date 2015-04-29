@@ -8,13 +8,8 @@ namespace limitium\zmq;
  * Class Ventilator
  * @package limitium\zmq
  */
-class Ventilator
+class Ventilator extends PollBroker
 {
-    private $context;
-    private $socket;
-    private $poll;
-    private $verbose;
-
     // Heartbeat management
     private $heartbeatAt; // When to send HEARTBEAT
     private $heartbeatDelay; // Heartbeat delay, msecs
@@ -23,71 +18,91 @@ class Ventilator
     //workers
     private $workers;
     private $workersFree;
+
     private $generator;
     private $responder;
 
-    public function __construct($verbose = false, $heartbeatDelay = 2500, \ZMQContext $context = null)
+    public function __construct($endpoint, $heartbeatDelay = 2500, \ZMQContext $context = null, $verbose)
     {
-        if (!$context) {
-            $context = new \ZMQContext();
-        }
-        $this->context = $context;
-        $this->socket = $this->context->getSocket(\ZMQ::SOCKET_XREP);
-        $this->socket->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
-        $this->poll = new \ZMQPoll();
+        parent::__construct($endpoint, $heartbeatDelay, $context, $verbose);
 
-        $this->verbose = $verbose;
+        $this->createSocket(\ZMQ::SOCKET_XREP, [
+            \ZMQ::SOCKOPT_LINGER => 0
+        ]);
+
         $this->heartbeatDelay = $heartbeatDelay;
         $this->workers = array();
         $this->workersFree = array();
 
+        $this->bind($endpoint);
     }
 
+    /**
+     * Sets tasks generator
+     * @param callable $generator
+     * @return $this
+     */
     public function setGenerator(callable $generator)
     {
         $this->generator = $generator;
+        return $this;
     }
 
+    /**
+     * Sets responder handler
+     * @param callable $responder
+     * @return $this
+     */
     public function setResponder(callable $responder)
     {
         $this->responder = $responder;
+        return $this;
     }
 
-    public function bind($endpoint)
+    /**
+     * Start sends tasks to workers
+     * @throws \Exception
+     */
+    public function listen()
+    {
+        if (!$this->generator) {
+            throw new \Exception("Empty generator");
+        }
+
+        $this->poll();
+    }
+
+    private function bind($endpoint)
     {
         $this->socket->bind($endpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
         if ($this->verbose) {
             printf("I: Broker is active at %s %s", $endpoint, PHP_EOL);
         }
-
     }
 
-    public function listen()
-    {
-        $read = $write = array();
-        while (1) {
-            $events = $this->poll->poll($read, $write, $this->heartbeatDelay);
-            if ($events > 0) {
-                $zmsg = new Zmsg($this->socket);
-                $zmsg->recv();
-                if ($this->verbose) {
-                    echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
-                }
 
-                $sender = $zmsg->pop();
-                $empty = $zmsg->pop();
-                $header = $zmsg->pop();
-                if ($header == Commands::W_WORKER) {
-                    $this->process($sender, $zmsg);
-                } else {
-                    echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
-                }
+    protected function onPoll($events, $read, $write)
+    {
+        if ($events) {
+            $zmsg = new Zmsg($this->socket);
+            $zmsg->recv();
+            if ($this->verbose) {
+                echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
             }
 
-            $this->generateTasks();
-            $this->sendHeartbeats();
+            $sender = $zmsg->pop();
+            $zmsg->pop();//empty
+            $header = $zmsg->pop();
+            if ($header == Commands::W_WORKER) {
+                $this->process($sender, $zmsg);
+            } else {
+                echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
+            }
         }
+
+        $this->generateTasks();
+        $this->sendHeartbeats();
     }
 
     private function sendHeartbeats()
@@ -103,7 +118,7 @@ class Ventilator
         }
     }
 
-    private function process($sender, $zmsg)
+    private function process($sender,Zmsg $zmsg)
     {
         $command = $zmsg->pop();
         $hasWorker = $this->hasWorker($sender);
@@ -127,7 +142,10 @@ class Ventilator
                 break;
             case Commands::W_RESPONSE:
                 if ($hasWorker) {
-                    call_user_func($this->responder, $zmsg->pop());
+                    if ($this->responder) {
+                        $response = $zmsg->pop();
+                        call_user_func($this->responder, $response);
+                    }
                     $this->free($this->workers[$sender]);
                 } else {
                     echo "E: Response from not ready worker `$sender` - disconnect ", PHP_EOL;
@@ -227,4 +245,5 @@ class Ventilator
             }
         }
     }
+
 }

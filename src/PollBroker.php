@@ -32,10 +32,7 @@ abstract class PollBroker extends BaseBroker
         $read = $write = [];
         while ($this->isPolling) {
             $events = $this->poll->poll($read, $write, $this->pollTimeOut);
-            if ($events > 0) {
-                $this->onPollEvents($read, $write);
-            }
-            $this->onPoll();
+            $this->onPoll($events, $read, $write);
         }
     }
 
@@ -49,7 +46,5 @@ abstract class PollBroker extends BaseBroker
         return $this;
     }
 
-    abstract protected function onPoll();
-
-    abstract protected function onPollEvents($read, $write);
+    abstract protected function onPoll($events, $read, $write);
 }

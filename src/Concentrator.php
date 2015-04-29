@@ -24,7 +24,7 @@ class Concentrator extends PollBroker
     {
         parent::__construct($endpoint, 1000, $context, $verbose);
 
-        $this->createSocket(\ZMQ::SOCKET_PULL,[
+        $this->createSocket(\ZMQ::SOCKET_PULL, [
 //            \ZMQ::SOCKOPT_SUBSCRIBE => ""
         ]);
 
@@ -43,7 +43,7 @@ class Concentrator extends PollBroker
     /**
      * Start listen for messages in loop
      *
-     * @throws Exception
+     * @throws \Exception
      */
     public function listen()
     {
@@ -75,22 +75,20 @@ class Concentrator extends PollBroker
         return $this->stopPolling();
     }
 
-    protected function onPoll()
+    protected function onPoll($events, $read, $write)
     {
-    }
-
-    protected function onPollEvents($read, $write)
-    {
-        $msg = [];
-        $zmsg = new Zmsg($this->socket);
-        $zmsg->recv();
-        if ($this->verbose) {
-            echo "I: received message from client:", PHP_EOL;
-            echo $zmsg->__toString(), PHP_EOL;
+        if ($events > 0) {
+            $msg = [];
+            $zmsg = new Zmsg($this->socket);
+            $zmsg->recv();
+            if ($this->verbose) {
+                echo "I: received message from client:", PHP_EOL;
+                echo $zmsg->__toString(), PHP_EOL;
+            }
+            while ($part = $zmsg->pop()) {
+                $msg[] = $part;
+            }
+            call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
         }
-        while ($part = $zmsg->pop()) {
-            $msg[] = $part;
-        }
-        call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
     }
 }
