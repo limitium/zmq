@@ -19,6 +19,7 @@ class ConcentratorTest extends PHPUnit_Framework_TestCase
         $pub1 = $this->createPublisher($context, $endpoint);
         $pub2 = $this->createPublisher($context, $endpoint);
 
+        $concentrator->emptyPoll();
 
         $msgs[] = "qweqwe";
         $pub1->push($msgs[0]);
@@ -49,7 +50,7 @@ class ConcentratorTest extends PHPUnit_Framework_TestCase
      */
     private function createPublisher($context, $endpoint)
     {
-        $publisher = new \ZMQSocket($context, \ZMQ::SOCKET_PUSH);
+        $publisher = new \ZMQSocket($context, \ZMQ::SOCKET_PUB);
         $publisher->setSockOpt(\ZMQ::SOCKOPT_SNDHWM, 1);
         $publisher->connect($endpoint);
         return new Zmsg($publisher);

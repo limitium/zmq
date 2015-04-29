@@ -22,10 +22,10 @@ class Concentrator extends PollBroker
      */
     public function __construct($endpoint, \ZMQContext $context = null, $verbose = false)
     {
-        parent::__construct($endpoint, 1000, $context, $verbose);
+        parent::__construct($endpoint, 1, $context, $verbose);
 
-        $this->createSocket(\ZMQ::SOCKET_PULL, [
-//            \ZMQ::SOCKOPT_SUBSCRIBE => ""
+        $this->createSocket(\ZMQ::SOCKET_SUB, [
+            \ZMQ::SOCKOPT_SUBSCRIBE => ""
         ]);
 
         $this->bind();
@@ -90,5 +90,15 @@ class Concentrator extends PollBroker
             }
             call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
         }
+    }
+
+    /**
+     * zmq bug on sub socket bind
+     * https://zeromq.jira.com/browse/LIBZMQ-559
+     */
+    public function emptyPoll()
+    {
+        $read = $write = [];
+        $this->poll->poll($read, $write, 0);
     }
 }

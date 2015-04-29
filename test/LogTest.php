@@ -19,11 +19,13 @@ class LogTest extends PHPUnit_Framework_TestCase
     {
         $endpoint = "inproc://zmq_logger1";
 
-        $collector = $this->createCollector(self::$context, $endpoint);
+        $receiver = $this->createCollector(self::$context, $endpoint);
 
         $log1 = new Log('l1', $endpoint, self::$context);
         $log2 = new Log('l2', $endpoint, self::$context);
 
+        $this->emptyPoll($receiver);
+        $collector = new Zmsg($receiver);
 
         $msgOut = "ololo";
         $log1->emergency($msgOut);
@@ -50,9 +52,12 @@ class LogTest extends PHPUnit_Framework_TestCase
     public function testLoggerWithContext()
     {
         $endpoint = "inproc://zmq_logger2";
-        $collector = $this->createCollector(self::$context, $endpoint);
+        $receiver = $this->createCollector(self::$context, $endpoint);
+
         $log1 = new Log('l3', $endpoint, self::$context);
 
+        $this->emptyPoll($receiver);
+        $collector = new Zmsg($receiver);
 
         $msgOut = "asd123";
         $context = [
@@ -82,9 +87,21 @@ class LogTest extends PHPUnit_Framework_TestCase
      */
     private function createCollector($context, $endpoint)
     {
-        $receiver = new \ZMQSocket($context, \ZMQ::SOCKET_PULL);
+        $receiver = new \ZMQSocket($context, \ZMQ::SOCKET_SUB);
         $receiver->setSockOpt(\ZMQ::SOCKOPT_LINGER, 0);
+        $receiver->setSockOpt(\ZMQ::SOCKOPT_SUBSCRIBE, "");
         $receiver->bind($endpoint);
-        return new Zmsg($receiver);
+        return $receiver;
+    }
+
+    /**
+     * @param $receiver
+     */
+    public function emptyPoll($receiver)
+    {
+        $poll = new \ZMQPoll();
+        $poll->add($receiver, \ZMQ::POLL_IN);
+        $readable = $writable = array();
+        $poll->poll($readable, $writable, 0); // Timeout immediately.
     }
 }
