@@ -25,10 +25,7 @@ class Concentrator extends BaseBroker
     {
         parent::__construct($endpoint, $context, $verbose);
 
-        $this->createSocket(\ZMQ::SOCKET_SUB, [
-            \ZMQ::SOCKOPT_LINGER => 0,
-            \ZMQ::SOCKOPT_SUBSCRIBE => ""
-        ]);
+        $this->createSocket(\ZMQ::SOCKET_PULL);
 
         $this->poll = new \ZMQPoll();
 
@@ -66,7 +63,7 @@ class Concentrator extends BaseBroker
                 while ($part = $zmsg->pop()) {
                     $msg[] = $part;
                 }
-                call_user_func($this->receiver, $msg);
+                call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
             }
         }
     }
