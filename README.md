@@ -1,4 +1,8 @@
-zmq
+# zmq
+Brokers for ZeroMQ
+
+[![Build Status](https://travis-ci.org/limitium/zmq.svg?branch=master)](https://travis-ci.org/limitium/zmq)
+
 ===
 
 ``server.php``
