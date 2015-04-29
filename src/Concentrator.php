@@ -8,13 +8,12 @@ namespace limitium\zmq;
  * Class Concentrator
  * @package limitium\zmq
  */
-class Concentrator extends BaseBroker
+class Concentrator extends PollBroker
 {
-    private $isListen;
     /**
-     * @var \ZMQPoll
+     * @var callable
      */
-    private $poll;
+    private $receiver;
 
     /**
      * @param $endpoint
@@ -23,11 +22,9 @@ class Concentrator extends BaseBroker
      */
     public function __construct($endpoint, \ZMQContext $context = null, $verbose = false)
     {
-        parent::__construct($endpoint, $context, $verbose);
+        parent::__construct($endpoint, 1000, $context, $verbose);
 
         $this->createSocket(\ZMQ::SOCKET_PULL);
-
-        $this->poll = new \ZMQPoll();
 
         $this->bind();
     }
@@ -48,24 +45,10 @@ class Concentrator extends BaseBroker
      */
     public function listen()
     {
-        $this->isListen = true;
-        $read = $write = [];
-        while ($this->isListen) {
-            $events = $this->poll->poll($read, $write, 1000);
-            if ($events > 0) {
-                $msg = [];
-                $zmsg = new Zmsg($this->socket);
-                $zmsg->recv();
-                if ($this->verbose) {
-                    echo "I: received message from client:", PHP_EOL;
-                    echo $zmsg->__toString(), PHP_EOL;
-                }
-                while ($part = $zmsg->pop()) {
-                    $msg[] = $part;
-                }
-                call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
-            }
+        if (!$this->receiver) {
+            throw new \Exception("Empty receiver");
         }
+        $this->poll();
     }
 
     /**
@@ -87,7 +70,25 @@ class Concentrator extends BaseBroker
      */
     public function stop()
     {
-        $this->isListen = false;
-        return $this;
+        return $this->stopPolling();
+    }
+
+    protected function onPoll()
+    {
+    }
+
+    protected function onPollEvents($read, $write)
+    {
+        $msg = [];
+        $zmsg = new Zmsg($this->socket);
+        $zmsg->recv();
+        if ($this->verbose) {
+            echo "I: received message from client:", PHP_EOL;
+            echo $zmsg->__toString(), PHP_EOL;
+        }
+        while ($part = $zmsg->pop()) {
+            $msg[] = $part;
+        }
+        call_user_func($this->receiver, sizeof($msg) == 1 ? $msg[0] : $msg);
     }
 }

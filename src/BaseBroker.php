@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: limi
- * Date: 4/27/15
- * Time: 7:04 PM
- */
 
 namespace limitium\zmq;
 

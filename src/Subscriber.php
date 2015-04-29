@@ -14,7 +14,7 @@ class Subscriber extends BaseBroker
     private $normalDelay = false;
     private $isListen = true;
     private $maxAllowedDelay;
-    private $listner;
+    private $listener;
     private $misser;
 
     public function __construct($publisherEndpoint, \ZMQContext $context = null, $maxAllowedDelay = 100, $verbose = false)
@@ -43,9 +43,13 @@ class Subscriber extends BaseBroker
 
     /**
      * Start listen for messages in loop
+     * @throws \Exception
      */
     public function listen()
     {
+        if(!$this->listener){
+            throw new \Exception("Empty listener");
+        }
         $this->isListen = true;
         while ($this->isListen) {
             $zmsg = new Zmsg($this->socket);
@@ -63,7 +67,7 @@ class Subscriber extends BaseBroker
             if ($this->misser && $delayTime > $this->normalDelay + $this->maxAllowedDelay) {
                 call_user_func($this->misser, $zmsg->pop(), $time, $delayTime);
             }
-            call_user_func($this->listner, $zmsg->pop(), $time);
+            call_user_func($this->listener, $zmsg->pop(), $time);
         }
     }
 
@@ -75,7 +79,7 @@ class Subscriber extends BaseBroker
      */
     public function setListener(callable $listener)
     {
-        $this->listner = $listener;
+        $this->listener = $listener;
         return $this;
     }
 
