@@ -11,16 +11,16 @@ namespace limitium\zmq;
 class Ventilator extends PollBroker
 {
     // Heartbeat management
-    private $heartbeatAt; // When to send HEARTBEAT
-    private $heartbeatDelay; // Heartbeat delay, msecs
-    private $heartbeatMaxFails = 4;
+    protected $heartbeatAt; // When to send HEARTBEAT
+    protected $heartbeatDelay; // Heartbeat delay, msecs
+    protected $heartbeatMaxFails = 4;
 
     //workers
-    private $workers;
-    private $workersFree;
+    protected $workers;
+    protected $workersFree;
 
-    private $generator;
-    private $responder;
+    protected $generator;
+    protected $responder;
 
     public function __construct($endpoint, $heartbeatDelay = 2500, \ZMQContext $context = null, $verbose)
     {
@@ -72,12 +72,12 @@ class Ventilator extends PollBroker
         $this->poll();
     }
 
-    private function bind($endpoint)
+    protected function bind($endpoint)
     {
         $this->socket->bind($endpoint);
         $this->poll->add($this->socket, \ZMQ::POLL_IN);
         if ($this->verbose) {
-            printf("I: Broker is active at %s %s", $endpoint, PHP_EOL);
+            printf("I: Generator is active at %s %s", $endpoint, PHP_EOL);
         }
     }
 
@@ -85,19 +85,23 @@ class Ventilator extends PollBroker
     protected function onPoll($events, $read, $write)
     {
         if ($events) {
-            $zmsg = new Zmsg($this->socket);
-            $zmsg->recv();
-            if ($this->verbose) {
-                echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
-            }
+            foreach ($read as $socket) {
+                if ($socket === $this->socket) {
+                    $zmsg = new Zmsg($this->socket);
+                    $zmsg->recv();
+                    if ($this->verbose) {
+                        echo "I: received message:", PHP_EOL, $zmsg->__toString(), PHP_EOL;
+                    }
 
-            $sender = $zmsg->pop();
-            $zmsg->pop();//empty
-            $header = $zmsg->pop();
-            if ($header == Commands::W_WORKER) {
-                $this->process($sender, $zmsg);
-            } else {
-                echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
+                    $sender = $zmsg->pop();
+                    $zmsg->pop();//empty
+                    $header = $zmsg->pop();
+                    if ($header == Commands::W_WORKER) {
+                        $this->process($sender, $zmsg);
+                    } else {
+                        echo "E: invalid header `$header` in  message", PHP_EOL, $zmsg->__toString(), PHP_EOL, PHP_EOL;
+                    }
+                }
             }
         }
 
@@ -105,7 +109,7 @@ class Ventilator extends PollBroker
         $this->sendHeartbeats();
     }
 
-    private function sendHeartbeats()
+    protected function sendHeartbeats()
     {
         if (microtime(true) > $this->heartbeatAt) {
             if ($this->verbose) {
@@ -118,7 +122,7 @@ class Ventilator extends PollBroker
         }
     }
 
-    private function process($sender,Zmsg $zmsg)
+    protected function process($sender, Zmsg $zmsg)
     {
         $command = $zmsg->pop();
         $hasWorker = $this->hasWorker($sender);
@@ -158,7 +162,7 @@ class Ventilator extends PollBroker
         }
     }
 
-    private function addWorker($address)
+    protected function addWorker($address)
     {
         if ($this->verbose) {
             echo "I: add new worker:", PHP_EOL;
@@ -169,24 +173,24 @@ class Ventilator extends PollBroker
         return $worker;
     }
 
-    private function free($worker)
+    protected function free($worker)
     {
         $this->workersFree[] = $worker;
         $this->live($worker);
         $this->generateTasks();
     }
 
-    private function live(WorkerAddress $worker)
+    protected function live(WorkerAddress $worker)
     {
         $worker->aliveFor($this->heartbeatMaxFails * $this->heartbeatDelay);
     }
 
-    private function hasWorker($address)
+    protected function hasWorker($address)
     {
         return isset($this->workers[$address]);
     }
 
-    private function workerSend(WorkerAddress $worker, $command, $data = null)
+    protected function workerSend(WorkerAddress $worker, $command, $data = null)
     {
         $zmsg = null;
         if ($data) {
@@ -196,7 +200,7 @@ class Ventilator extends PollBroker
         $this->send($worker->address, $command, $zmsg);
     }
 
-    private function send($address, $command, $zmsg = null)
+    protected function send($address, $command, $zmsg = null)
     {
         $zmsg = $zmsg ? $zmsg : new Zmsg();
         $zmsg->push($command);
@@ -209,7 +213,7 @@ class Ventilator extends PollBroker
         $zmsg->set_socket($this->socket)->send();
     }
 
-    private function purgeWorkers()
+    protected function purgeWorkers()
     {
         foreach ($this->workersFree as $worker) {
             if ($worker->expiry < microtime(1)) {
@@ -219,7 +223,7 @@ class Ventilator extends PollBroker
         }
     }
 
-    private function deleteWorker(WorkerAddress $worker, $disconnect = false)
+    protected function deleteWorker(WorkerAddress $worker, $disconnect = false)
     {
         if ($this->verbose) {
             echo "I: remove worker `$worker->address` " . ($disconnect ? "disconnect" : ""), PHP_EOL;
@@ -234,7 +238,7 @@ class Ventilator extends PollBroker
         }
     }
 
-    private function generateTasks()
+    protected function generateTasks()
     {
         $this->purgeWorkers();
         foreach ($this->workersFree as $k => $worker) {

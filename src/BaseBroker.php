@@ -32,11 +32,21 @@ abstract class BaseBroker
         $this->verbose = $verbose;
     }
 
-    protected function createSocket($socketType, array $options = [])
+    /**
+     * @param $socketType
+     * @param array $options
+     * @param bool $justCreate
+     * @return \ZMQSocket
+     */
+    protected function createSocket($socketType, array $options = [], $justCreate = false)
     {
-        $this->socket = $this->context->getSocket($socketType);
+        $socket = $this->context->getSocket($socketType);
         foreach ($options as $key => $value) {
-            $this->socket->setSockOpt($key, $value);
+            $socket->setSockOpt($key, $value);
         }
+        if (!$justCreate) {
+            $this->socket = $socket;
+        }
+        return $socket;
     }
 }

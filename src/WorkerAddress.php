@@ -6,6 +6,7 @@ namespace limitium\zmq;
  * For internal use
  *
  * Class WorkerAddress
+ * @internal
  * @package limitium\zmq
  */
 class WorkerAddress

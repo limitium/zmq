@@ -30,7 +30,6 @@ class Publisher extends BaseBroker
         if ($this->verbose) {
             printf("I: Publisher is active at %s %s", $this->endpoint, PHP_EOL);
         }
-
     }
 
     public function send($data)
