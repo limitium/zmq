@@ -11,7 +11,7 @@ use Psr\Log\LoggerTrait;
  * Class Log
  * @package limitium\zmq
  */
-class Log extends BaseBroker implements LoggerInterface
+class ZLogger extends BaseBroker implements LoggerInterface
 {
     use LoggerTrait;
 
@@ -57,7 +57,7 @@ class Log extends BaseBroker implements LoggerInterface
         $msg = new Zmsg($this->socket);
         if (sizeof($context) > 0) {
             $msg->wrap(json_encode($context));
-            $msg->wrap(Log::CONTEXT_DELIMITER);
+            $msg->wrap(ZLogger::CONTEXT_DELIMITER);
         }
         $msg->wrap($message);
         $msg->wrap($level);

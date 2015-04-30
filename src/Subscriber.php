@@ -11,7 +11,7 @@ namespace limitium\zmq;
 class Subscriber extends BaseBroker
 {
 
-    private $normalDelay = false;
+    private $normalDelay = 0;
     private $isListen = true;
     private $maxAllowedDelay;
     private $listener;

@@ -2,7 +2,7 @@
 
 namespace limitium\zmq\test;
 
-use limitium\zmq\Log;
+use limitium\zmq\ZLogger;
 use limitium\zmq\Zmsg;
 use PHPUnit_Framework_TestCase;
 
@@ -21,8 +21,8 @@ class LogTest extends PHPUnit_Framework_TestCase
 
         $receiver = $this->createCollector(self::$context, $endpoint);
 
-        $log1 = new Log('l1', $endpoint, self::$context);
-        $log2 = new Log('l2', $endpoint, self::$context);
+        $log1 = new ZLogger('l1', $endpoint, self::$context);
+        $log2 = new ZLogger('l2', $endpoint, self::$context);
 
         $this->emptyPoll($receiver);
         $collector = new Zmsg($receiver);
@@ -54,7 +54,7 @@ class LogTest extends PHPUnit_Framework_TestCase
         $endpoint = "inproc://zmq_logger2";
         $receiver = $this->createCollector(self::$context, $endpoint);
 
-        $log1 = new Log('l3', $endpoint, self::$context);
+        $log1 = new ZLogger('l3', $endpoint, self::$context);
 
         $this->emptyPoll($receiver);
         $collector = new Zmsg($receiver);
@@ -75,7 +75,7 @@ class LogTest extends PHPUnit_Framework_TestCase
         $collector->pop(); //time
         $this->assertEquals($collector->pop(), 'debug');
         $this->assertEquals($collector->pop(), $msgOut);
-        $this->assertEquals($collector->pop(), Log::CONTEXT_DELIMITER);
+        $this->assertEquals($collector->pop(), ZLogger::CONTEXT_DELIMITER);
         $this->assertEquals($collector->pop(), json_encode($context));
     }
 

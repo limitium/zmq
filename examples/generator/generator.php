@@ -11,6 +11,6 @@ use limitium\zmq\Ventilator;
         return rand();
     })
     ->setResponder(function ($msg) {
-        var_dump($msg);
+        echo $msg;
     })
     ->listen();

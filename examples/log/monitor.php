@@ -7,6 +7,6 @@ use limitium\zmq\Concentrator;
 
 (new Concentrator('tcp://127.0.0.1:5555', null, true))
     ->setReceiver(function ($msg) {
-        var_dump($msg);
+        echo $msg;
     })
     ->listen();
