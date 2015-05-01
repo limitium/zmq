@@ -6,7 +6,6 @@ Brokers for [ZeroMQ](http://zeromq.org/)from [TA:map](https://github.com/limitiu
 [![Build Status](https://travis-ci.org/limitium/zmq.svg?branch=master)](https://travis-ci.org/limitium/zmq)
 [![Dependency Badge](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b/badge.svg?style=flat)](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/limitium/zmq/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/limitium/zmq/?branch=master)
-[![Code Coverage](https://scrutinizer-ci.com/g/limitium/zmq/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/limitium/zmq/?branch=master)
 [![Latest Stable Version](https://poser.pugx.org/limitium/zmq/v/stable)](https://packagist.org/packages/limitium/zmq)
 [![Total Downloads](https://poser.pugx.org/limitium/zmq/downloads)](https://packagist.org/packages/limitium/zmq)
 [![Latest Unstable Version](https://poser.pugx.org/limitium/zmq/v/unstable)](https://packagist.org/packages/limitium/zmq)
@@ -45,6 +44,8 @@ Brokers for [ZeroMQ](http://zeromq.org/)from [TA:map](https://github.com/limitiu
 
 ### PSR-3 distributed logger
 
+Can be used in single process, several process on single machine or on several machines. 
+
 #### logger
 
 ```php
@@ -67,6 +68,8 @@ Brokers for [ZeroMQ](http://zeromq.org/)from [TA:map](https://github.com/limitiu
 ```
 
 ### Task generator
+
+With workers management (checks workers statuses, checks workers heartbeats etc)
 
 #### Generator
 
