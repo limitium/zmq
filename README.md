@@ -1,5 +1,7 @@
-# zmq
-Brokers for ZeroMQ from TA:map
+ZMQ
+================
+
+Brokers for [ZeroMQ](http://zeromq.org/)from [TA:map](https://github.com/limitium/C-CTA-map-frontend/) project 
 
 [![Build Status](https://travis-ci.org/limitium/zmq.svg?branch=master)](https://travis-ci.org/limitium/zmq)
 [![Dependency Badge](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b/badge.svg?style=flat)](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b)
@@ -9,36 +11,83 @@ Brokers for ZeroMQ from TA:map
 [![Total Downloads](https://poser.pugx.org/limitium/zmq/downloads)](https://packagist.org/packages/limitium/zmq)
 [![Latest Unstable Version](https://poser.pugx.org/limitium/zmq/v/unstable)](https://packagist.org/packages/limitium/zmq)
 [![License](https://poser.pugx.org/limitium/zmq/license)](https://packagist.org/packages/limitium/zmq)
-===
 
-``server.php``
+## Install(linux)
 
-    <?php
-    require_once "Ventilator.php";
+#### 1. Install ZeroMQ
 
-    $server = new Ventilator(true);
-    $server->bind("tcp://*:5555");
+```bash
+    sudo apt-get update -qq
+    sudo apt-get install -y libzmq3-dev
+```
 
-    $server->setGenerator(function () {
-        return mt_rand(1, 1000);
-    });
+#### 2. Install php-zmq binding
 
-    $server->setResponder(function ($data) {
-      print_r("Got data:$data" . PHP_EOL);
-    });
+```bash
+    git clone https://github.com/mkoppanen/php-zmq.git
+    sh -c "cd php-zmq && phpize && ./configure && make --silent && sudo make install"
+    echo "extension=zmq.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
+```
 
-    $server->listen();
+### 3. Require ZMQ via Composer
 
-``worker.php``
+```bash
+    composer require limitium/zmq
+```
 
-    <?php
-    require_once "Worker.php";
+## Tests
 
-    $wrk = new Worker("tcp://localhost:5555", true);
+```bash
+    phpunit
+```
 
-    $wrk->setExecuter(function ($data) {
-        sleep(5);
-        return "done $data";
-    });
+## Usage
 
-    $wrk->work();
+### PSR-3 distributed logger
+
+#### logger
+
+```php
+    $logger = new ZLogger('my_service_1', 'tcp://127.0.0.1:5555');
+    $logger->info("core is stable");
+    $logger->emergency("we're all going to die!");
+```
+
+#### collector
+
+```php
+    (new Concentrator('tcp://127.0.0.1:5555'))
+        ->setReceiver(function ($logMsg) {
+            $serviceName = $logMsg[0];
+            $time = $logMsg[1];
+            $logLevel = $logMsg[2];
+            $logMsg = $logMsg[3];
+        })
+        ->listen();
+```
+
+### Task generator
+
+#### Generator
+
+```php
+    (new Ventilator('tcp://127.0.0.1:5555'))
+        ->setGenerator(function () {
+            sleep(1);
+            return rand();
+        })
+        ->setResponder(function ($msg) {
+            echo $msg;
+        })
+        ->listen();
+```
+
+#### Worker
+
+```php
+    (new Worker('tcp://127.0.0.1:5555'))
+        ->setExecutor(function ($msg) {
+            return $msg + $msg;
+        })
+        ->work();
+```
