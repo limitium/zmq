@@ -1,7 +1,7 @@
 ZMQ
 ================
 
-Brokers for [ZeroMQ](http://zeromq.org/)from [TA:map](https://github.com/limitium/C-CTA-map-frontend/) project 
+Brokers for [ZeroMQ](http://zeromq.org/) from [TA:map](https://github.com/limitium/C-CTA-map-frontend/) project used for distributed parsing system.
 
 [![Build Status](https://travis-ci.org/limitium/zmq.svg?branch=master)](https://travis-ci.org/limitium/zmq)
 [![Dependency Badge](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b/badge.svg?style=flat)](https://www.versioneye.com/user/projects/55437151d8fe1a25cc00008b)
