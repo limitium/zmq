@@ -1,9 +1,9 @@
 <?php
 namespace limitium\zmq;
 /**
- * Class Commands
- * @package limitium\zmq
- */
+     * Class Commands
+     * @package limitium\zmq
+     */
 class Commands
 {
     const W_WORKER = "w";

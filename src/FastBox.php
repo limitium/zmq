@@ -36,7 +36,7 @@ class FastBox extends Ventilator
 
         $this->connect($publisherEndpoint);
 
-        $this->generator = function () {
+        $this->generator = function() {
             return array_shift($this->queue);
         };
     }
@@ -85,7 +85,7 @@ class FastBox extends Ventilator
                         echo "I: received message from publisher size: ";
                         echo strlen($zmsg->__toString()), PHP_EOL;
                     }
-                    $zmsg->unwrap();//time
+                    $zmsg->unwrap(); //time
                     if ($this->queueLimit > sizeof($this->queue)) {
                         array_unshift($this->queue, $zmsg->pop());
                     }

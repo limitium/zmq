@@ -94,7 +94,7 @@ class Ventilator extends PollBroker
                     }
 
                     $sender = $zmsg->pop();
-                    $zmsg->pop();//empty
+                    $zmsg->pop(); //empty
                     $header = $zmsg->pop();
                     if ($header == Commands::W_WORKER) {
                         $this->process($sender, $zmsg);
