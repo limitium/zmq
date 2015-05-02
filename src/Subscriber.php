@@ -47,7 +47,7 @@ class Subscriber extends BaseBroker
      */
     public function listen()
     {
-        if(!$this->listener){
+        if (!$this->listener) {
             throw new \Exception("Empty listener");
         }
         $this->isListen = true;
