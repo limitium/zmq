@@ -94,3 +94,22 @@ With workers management (checks workers statuses, checks workers heartbeats etc)
         })
         ->work();
 ```
+
+### Publish/Subscribe
+
+#### Publisher
+
+```php
+    $pub = new Publisher('tcp://127.0.0.1:5555');
+    $pub->send('azaza');
+```
+
+#### Subscriber
+
+```php
+    (new Subscriber('tcp://127.0.0.1:5555'))
+        ->setListener(function ($msg){
+            echo $msg;
+        })
+        ->listen();
+```
