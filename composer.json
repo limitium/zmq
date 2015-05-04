@@ -1,6 +1,6 @@
 {
   "name": "limitium/zmq",
-  "description": "ZeroMQ based brokers",
+  "description": "Brokers for ZeroMQ from TA:map project used for distributed parsing system.",
   "keywords": [
     "0mq",
     "psr-3",
