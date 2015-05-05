@@ -11,7 +11,7 @@ Brokers for [ZeroMQ](http://zeromq.org/) from [TA:map](https://github.com/limiti
 [![Latest Unstable Version](https://poser.pugx.org/limitium/zmq/v/unstable)](https://packagist.org/packages/limitium/zmq)
 [![License](https://poser.pugx.org/limitium/zmq/license)](https://packagist.org/packages/limitium/zmq)
 
-## Install(linux)
+## Install(debian)
 
 #### 1. Install ZeroMQ
 
